@@ -1,0 +1,186 @@
+<!-- doctype html: يخبر المتصفح أن هذا المستند هو إصدار HTML5 الحديث ليعرضه بشكل صحيح -->
+<!DOCTYPE html>
+
+<!-- html: هو الحاوية الرئيسية لكل محتوى الصفحة -->
+<!-- lang="ar": تخبر المتصفح ومحركات البحث أن لغة المحتوى الأساسية هي العربية -->
+<!-- dir="rtl": تعني (Right To Left)، تجعل اتجاه الصفحة من اليمين لليسار ليناسب اللغة العربية -->
+<html lang="ar" dir="rtl">
+
+<!-- head: رأس الصفحة، يحتوي على المعلومات التي لا يراها المستخدم مباشرة ولكنها ضرورية للمتصفح -->
+<head>
+    <!-- meta charset="UTF-8": تضمن عرض الحروف العربية بشكل سليم وعدم ظهورها كرموز غريبة -->
+    <meta charset="UTF-8">
+    
+    <!-- title: هو النص الذي يظهر في علامة تبويب المتصفح (Tab) من الأعلى -->
+    <title>إدارة العملاء - نظام </title>
+    
+
+
+
+    <!-- script src="...": استدعاء مكتبة Tailwind CSS من الإنترنت لتنسيق الألوان والخطوط والأبعاد بسهولة -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- script src="...": استدعاء مكتبة Supabase JS لتمكين الصفحة من إرسال واستقبال البيانات من قاعدة بياناتك -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- link rel="stylesheet": ربط ملف CSS الخارجي (style.css) الذي أنشأته لإضافة لمساتك الخاصة مثل الخطوط -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<!-- body: جسم الصفحة، وهو الجزء الذي يظهر فيه كل شيء يراه المستخدم (أزرار، جداول، نصوص) -->
+<!-- class="bg-gray-100 p-8": كلاسات من Tailwind تجعل خلفية الصفحة رمادية فاتحة وتضيف مسافة (padding) حول المحتوى -->
+<body class="bg-gray-100 p-8">
+
+    <!-- div: حاوية عامة لتقسيم العناصر وتجميعها -->
+    <!-- max-w-6xl mx-auto: تحديد أقصى عرض للمحتوى وجعله يتوسط الشاشة دائماً -->
+    <div class="max-w-6xl mx-auto">
+        
+        <!-- header: قسم ترويسة الصفحة، غالباً يحتوي على العنوان والأزرار الرئيسية -->
+        <!-- flex justify-between items-center: تجعل العنوان في جهة والزر في الجهة المقابلة بشكل متناسق -->
+        <header class="flex justify-between items-center mb-8">
+            <!-- h1: العنوان الرئيسي للصفحة، ويظهر بخط عريض وكبير -->
+            <h1 class="text-3xl font-bold text-gray-800">إدارة العملاء</h1>
+            
+            <!-- button: زر تفاعلي -->
+            <!-- onclick="showAddModal()": تربط الزر بدالة في ملف الجافا سكريبت تفتح نافذة الإضافة عند النقر -->
+            <button onclick="showAddModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Add Customer</button>
+        </header>
+
+        <!-- جدول عرض العملاء: وضعنا الجدول داخل div بظل (shadow) وزوايا دائرية ليعطي مظهراً احترافياً -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <!-- table: وسم إنشاء الجدول الأساسي -->
+            <!-- w-full text-right: تجعل الجدول يمتد لكامل عرض الشاشة وتجعل النصوص محاذية لليمين -->
+            <table class="w-full text-right">
+                
+                <!-- thead: رأس الجدول الذي يحتوي على أسماء الأعمدة (العناوين) -->
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <!-- th: خلية عنوان (Table Header) وتكون بخط عريض تلقائياً -->
+                        <th class="p-4 text-gray-600 font-bold">customer ID</th>
+                        <th class="p-4 text-gray-600 font-bold">Name</th>
+                        <th class="p-4 text-gray-600 font-bold">Phone</th>
+                        <th class="p-4 text-gray-600 font-bold">Country</th>
+                        <th class="p-4 text-gray-600 font-bold">Company Name</th>
+                        <th class="p-4 text-gray-600 font-bold">Company Field</th>
+                    </tr>
+                </thead>
+                
+                <!-- tbody: جسم الجدول الذي ستوضع فيه البيانات الحقيقية -->
+                <!-- id="customersTableBody": أهم كلمة هنا! نستخدم هذا المعرف في ملف (customers.js) "لإمساك" هذا المكان وحقن البيانات فيه -->
+                <tbody id="customersTableBody">
+                    <!-- سيتم تعبئة البيانات هنا بواسطة JavaScript من خلال ملف customers.js -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+
+
+<!-- حاوية النافذة المنبثقة (Modal Container) -->
+<!-- id="addCustomerModal": المعرف الذي سنستخدمه في JS لإظهار وإخفاء النافذة -->
+<!-- hidden: كلاس من Tailwind يجعل النافذة مخفية افتراضياً -->
+<div id="addCustomerModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+    
+    <!-- جسم النافذة (Modal Body) -->
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 overflow-hidden">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">إضافة عميل جديد</h2>
+        
+        <!-- نموذج الإدخال (Form) -->
+        <form id="addCustomerForm" class="space-y-4">
+            <!-- ملاحظة: لا يوجد حقل لـ ID لأن سوبابيز يولده تلقائياً -->
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">الاسم الكامل</label>
+                <input type="text" id="custName" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
+                <input type="text" id="custPhone" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">الدولة</label>
+                <input type="text" id="custCountry" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">اسم الشركة</label>
+                <input type="text" id="custCompanyName" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">مجال الشركة</label>
+                <input type="text" id="custField" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <!-- أزرار التحكم -->
+            <div class="flex justify-end space-x-3 mt-8 gap-2">
+                <!-- type="button": ضروري لكي لا يقوم الزر بإرسال الفورم وتنشيط الصفحة -->
+                <button type="button" onclick="closeAddModal()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ العميل</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+<div id="editCustomerModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+    
+    <!-- جسم النافذة (Modal Body) -->
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 overflow-hidden">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">إضافة عميل جديد</h2>
+        
+        <!-- نموذج الإدخال (Form) -->
+        <form id="addCustomerForm" class="space-y-4">
+            <!-- ملاحظة: لا يوجد حقل لـ ID لأن سوبابيز يولده تلقائياً -->
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">الاسم الكامل</label>
+                <input type="text" id="editCustName" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
+                <input type="text" id="ُeditcustPhone" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">الدولة</label>
+                <input type="text" id="editcustCountry" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">اسم الشركة</label>
+                <input type="text" id="editcustCompanyName" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">مجال الشركة</label>
+                <input type="text" id="editcustField" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <!-- أزرار التحكم -->
+            <div class="flex justify-end space-x-3 mt-8 gap-2">
+                <!-- type="button": ضروري لكي لا يقوم الزر بإرسال الفورم وتنشيط الصفحة -->
+                <button type="button" onclick="closeAddModal()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ التعديلات</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+
+    <!-- استدعاء ملفات الـ JS (يتم وضعها في الأسفل لتسريع تحميل واجهة الصفحة أولاً) -->
+    
+    <!-- script src="app.js": ربط ملف الإعدادات الرئيسي الذي يحتوي على مفاتيح الربط مع سوبابيز -->
+    <script src="app.js"></script>
+    
+    <!-- script src="customers.js": ربط ملف المنطق البرمجي الذي يسحب البيانات من السيرفر ويضعها في tbody المذكور أعلاه -->
+    <script src="customers.js"></script>
+</body>
+</html>
