@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة الفواتير</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">إدارة الفواتير</h1>
+            <button onclick="showAddInvoiceModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                Add Invoice
+            </button>
+        </header>
+
+        <div class="bg-white rounded-xl shadow-lg p-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">الفترة الزمنية</label>
+                    <select id="invoicePeriodFilter" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="week" selected>آخر أسبوع</option>
+                        <option value="month">آخر شهر</option>
+                        <option value="all">كل الفواتير</option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">بحث</label>
+                    <input
+                        type="text"
+                        id="invoiceSearchInput"
+                        placeholder="ابحث برقم الفاتورة أو Customer ID أو وجهة الشحن"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <table class="w-full text-right">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="p-4 text-gray-600 font-bold">Invoice Number</th>
+                        <th class="p-4 text-gray-600 font-bold">Customer ID</th>
+                        <th class="p-4 text-gray-600 font-bold">Customer Name</th>
+                        <th class="p-4 text-gray-600 font-bold">Shipping Destination</th>
+                        <th class="p-4 text-gray-600 font-bold">Shipping Address Text</th>
+                        <th class="p-4 text-gray-600 font-bold">Commission Rate</th>
+                        <th class="p-4 text-gray-600 font-bold">Price Per CBM</th>
+                        <th class="p-4 text-gray-600 font-bold text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="invoicesTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="addInvoiceModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 overflow-hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">إضافة فاتورة</h2>
+
+            <form id="addInvoiceForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
+                    <input type="text" id="invoiceNumber" readonly class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 text-gray-500 cursor-not-allowed" placeholder="سيتم توليده تلقائيًا">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                    <select id="invoiceCustomerId" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Destination</label>
+                    <select id="invoiceShippingDestinationId" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Address Text</label>
+                    <input type="text" id="invoiceShippingAddressText" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Commission</label>
+                    <select id="invoiceCommissionId" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Date</label>
+                    <input type="date" id="invoiceDate" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Price Per CBM</label>
+                    <input type="text" value="يتم تعبئته تلقائيا من قاعدة البيانات" disabled class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 text-gray-500">
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-8 gap-2">
+                    <button type="button" onclick="closeAddInvoiceModal()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editInvoiceModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 overflow-hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">تعديل فاتورة</h2>
+
+            <form id="editInvoiceForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
+                    <input type="text" id="editInvoiceNumber" readonly class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 text-gray-500 cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                    <select id="editInvoiceCustomerId" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Destination</label>
+                    <select id="editInvoiceShippingDestinationId" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Address Text</label>
+                    <input type="text" id="editInvoiceShippingAddressText" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Commission</label>
+                    <select id="editInvoiceCommissionId" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Date</label>
+                    <input type="date" id="editInvoiceDate" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Price Per CBM</label>
+                    <input type="text" id="editPricePerCbmPreview" disabled class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 text-gray-500">
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-8 gap-2">
+                    <button type="button" onclick="closeEditInvoiceModal()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ التعديلات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="invoices.js"></script>
+</body>
+</html>

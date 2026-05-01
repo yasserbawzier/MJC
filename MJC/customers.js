@@ -2,6 +2,9 @@
  * async: تعني "غير متزامن". نضعها قبل الدالة لأننا سنستخدم بداخلها أمر جلب بيانات من الإنترنت 
  * يحتاج لوقت للانتظار، وبدونها سيتجمد المتصفح حتى ينتهي الطلب.
  * function: الكلمة المحجوزة لتعريف دالة (مهمة محددة).
+ * هذا الملف مرتبط مباشرة بملف Customers.html:
+ * - يعتمد على وجود عناصر HTML بمعرفات مثل customersTableBody و addCustomerForm و editCustomerForm.
+ * - يعتمد على المتغير _supabase الذي تم تعريفه في App.js.
  */
 async function checkAndLoadCustomers() {
     const tableBody = document.getElementById('customersTableBody');
@@ -31,8 +34,12 @@ async function checkAndLoadCustomers() {
        /**
  * هذا الجزء داخل حلقة data.forEach في ملف customers.js
  */
+// data.forEach: تكرار على كل عميل مستلم من قاعدة البيانات.
+// customer => { ... }: كل دورة تعطينا كائن عميل واحد.
 data.forEach(customer => {
+    // createElement('tr'): إنشاء صف جدول جديد لكل عميل.
     const row = document.createElement('tr');
+    // className: إضافة تنسيقات Tailwind للصف (حدود، تحويم، مؤثرات).
     row.className = "border-b hover:bg-blue-50 transition cursor-pointer relative group";
 
     row.innerHTML = `
@@ -79,20 +86,49 @@ function showAddModal() {
 }
 
 /**
- * دالة لإخفاء النافذة المنبثقة
+ * closeModal:
+ * دالة عامة لإغلاق أي نافذة منبثقة (Modal) بالاعتماد على الـ ID.
+ * modalId: معرف النافذة المطلوب إغلاقها.
+ * formId: (اختياري) معرف الفورم المراد عمل reset له بعد الإغلاق.
+ * clearEditingState: (اختياري) تصفير معرف العميل الجاري تعديله.
  */
-function closeAddModal() {
-    // إضافة كلاس hidden مرة أخرى لإخفاء النافذة
-    document.getElementById('addCustomerModal').classList.add('hidden');
-    // مسح البيانات التي كتبها المستخدم في الحقول لكي تكون فارغة في المرة القادمة
-    document.getElementById('addCustomerForm').reset();
+function closeModal(modalId, formId = null, clearEditingState = false) {
+    // modalId: معرف نافذة HTML المطلوب إخفاؤها.
+    // formId = null: قيمة افتراضية تعني "لا يوجد فورم لإعادة تعيينه" ما لم نمرر واحدًا.
+    // clearEditingState = false: افتراضيًا لا نمسح معرف العميل الجاري تعديله.
+    const modalElement = document.getElementById(modalId);
+    // if (modalElement): نتحقق أن العنصر موجود فعلاً قبل التعديل عليه.
+    if (modalElement) modalElement.classList.add('hidden');
+
+    // if (formId): ندخل هذا الجزء فقط إذا أرسلنا معرف فورم.
+    if (formId) {
+        // formElement: عنصر الفورم المراد إعادة تعيينه.
+        const formElement = document.getElementById(formId);
+        // reset(): يعيد الحقول لحالتها الافتراضية.
+        if (formElement) formElement.reset();
+    }
+
+    // إذا طُلب تصفير حالة التعديل، نحذف المعرف المخزن في window.
+    if (clearEditingState) {
+        window.currentEditingId = null;
+    }
 }
 
+/**
+ * closeAddModal:
+ * واجهة سهلة لاستخدام الدالة العامة مع نافذة الإضافة.
+ */
+function closeAddModal() {
+    closeModal('addCustomerModal', 'addCustomerForm');
+}
+ 
 
 /**
  * نربط هذا الكود بحدث "submit" الخاص بالفورم الموجود في HTML
  * لمنع الصفحة من التحديث (Refresh) عند الضغط على زر حفظ.
  */
+// getElementById('addCustomerForm'): جلب فورم الإضافة من Customers.html.
+// addEventListener('submit', ...): ربط دالة تعمل عند الضغط على زر الإرسال.
 document.getElementById('addCustomerForm').addEventListener('submit', async (e) => {
     
     // 1. e.preventDefault(): تمنع المتصفح من القيام بسلوكه الافتراضي (وهو إعادة تحميل الصفحة)
@@ -211,21 +247,124 @@ async function openEditModal(uuid) {
 
         // 2. تعبئة الحقول في نافذة التعديل بالبيانات القادمة من السيرفر
         document.getElementById('editCustName').value = data.full_name;
-        document.getElementById('ُeditcustPhone').value = data.phone;
-          document.getElementById('editcustCountry').value = data.country_code;
-          document.getElementById('editcustCompanyName').value = data.company_name;
-          document.getElementById('editcustField').value = data.company_field;
+        document.getElementById('editCustPhone').value = data.phone;
+        document.getElementById('editCustCountry').value = data.country_code;
+        document.getElementById('editCustCompanyName').value = data.company_name;
+        document.getElementById('editCustField').value = data.company_field;
         // ... وهكذا لبقية الحقول
 
         // 3. تخزين الـ UUID في حقل مخفي أو متغير لكي نعرف من سنحدث لاحقاً
         window.currentEditingId = uuid;
 
-        // 4. إظهار النافذة
+        // 4. إظهار النافذة:
+        // classList.remove('hidden'): إزالة كلاس الإخفاء من مودال التعديل الموجود في Customers.html.
         document.getElementById('editCustomerModal').classList.remove('hidden');
 
     } catch (err) {
         alert("فشل جلب بيانات العميل: " + err.message);
     }
+}
+
+/**
+ * closeEditModal:
+ * إغلاق نافذة التعديل وتنظيف حالة العميل الجاري تعديله.
+ */
+function closeEditModal() {
+    // نستخدم الدالة العامة نفسها، لكن هنا لمودال التعديل.
+    // null: لا نحتاج reset لفورم التعديل هنا.
+    // true: نحتاج تصفير currentEditingId بعد الإغلاق.
+    closeModal('editCustomerModal', null, true);
+}
+
+/**
+ * updateEditedCustomerData:
+ * دالة مسؤولة عن أخذ البيانات الجديدة من نموذج التعديل
+ * ثم إرسال أمر "تحديث" إلى قاعدة البيانات للعميل الذي تغيّرت بياناته.
+ */
+async function updateEditedCustomerData(e) {
+    // e: يمثل حدث الإرسال القادم من الفورم (submit event)
+    // preventDefault: يمنع السلوك الافتراضي للمتصفح (إعادة تحميل الصفحة)
+    e.preventDefault();
+
+    // currentEditingId: المتغير الذي خزّناه عند فتح نافذة التعديل لمعرفة العميل المستهدف
+    const targetCustomerId = window.currentEditingId;
+
+    // if: شرط تحقق قبل البدء في التحديث
+    // !targetCustomerId: يعني لا يوجد معرف عميل محفوظ حاليًا
+    if (!targetCustomerId) {
+        alert("لا يوجد عميل محدد للتعديل.");
+        return; // return: إيقاف تنفيذ الدالة فورًا
+    }
+
+    // getElementById: جلب حقول الإدخال من نموذج التعديل بواسطة المعرف
+    // .value: قراءة النص الذي أدخله المستخدم داخل كل حقل
+    const editedName = document.getElementById('editCustName').value;
+    const editedPhone = document.getElementById('editCustPhone').value;
+    const editedCountry = document.getElementById('editCustCountry').value;
+    const editedCompany = document.getElementById('editCustCompanyName').value;
+    const editedField = document.getElementById('editCustField').value;
+
+    // querySelector: جلب زر الحفظ داخل نفس الفورم الذي تم إرساله
+    // e.target: هو عنصر الفورم الحالي
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+
+    // تعطيل الزر مؤقتًا لتجنب الضغط المتكرر أثناء التنفيذ
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = "جاري التحديث...";
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+
+    try {
+        /**
+         * _supabase: عميل الاتصال بقاعدة البيانات
+         * .from('customers'): تحديد الجدول المستهدف
+         * .update({...}): القيم الجديدة التي نريد حفظها بدل القديمة
+         * .eq('id', targetCustomerId): تحديث السجل الذي يحمل نفس المعرّف فقط
+         */
+        const { error } = await _supabase
+            .from('customers')
+            .update({
+                full_name: editedName,
+                phone: editedPhone,
+                country_code: editedCountry,
+                company_name: editedCompany,
+                company_field: editedField
+            })
+            .eq('id', targetCustomerId);
+
+        // إذا رجعت القاعدة بخطأ نوقف المسار الناجح ونرمي الخطأ إلى catch
+        if (error) throw error;
+
+        // نجاح العملية: رسالة للمستخدم + إخفاء نافذة التعديل + إعادة تحميل الجدول
+        alert("تم تحديث بيانات العميل بنجاح! ✅");
+        closeEditModal();
+        checkAndLoadCustomers();
+
+    } catch (err) {
+        // معالجة الأخطاء: طباعة الخطأ في الكونسول + تنبيه المستخدم
+        console.error("فشل في تحديث العميل:", err.message);
+        alert("حدث خطأ أثناء تحديث بيانات العميل: " + err.message);
+    } finally {
+        // finally: ينفذ دائمًا سواء نجحت العملية أو فشلت
+        // إعادة الزر إلى حالته الطبيعية ليصبح قابلًا للاستخدام مرة أخرى
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "حفظ التعديلات";
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+}
+
+/**
+ * ربط دالة التحديث بنموذج التعديل:
+ * إذا كان الفورم موجودًا في الصفحة، نربطه بحدث الإرسال submit.
+ */
+const editCustomerForm = document.getElementById('editCustomerForm');
+// if (editCustomerForm): حماية من الخطأ لو الفورم غير موجود في الصفحة.
+if (editCustomerForm) {
+    // submit: عند حفظ التعديلات نستدعي دالة التحديث.
+    editCustomerForm.addEventListener('submit', updateEditedCustomerData);
 }
 /**
  * استدعاء الدالة: بدون هذا السطر لن يحدث شيء، نحن هنا نعطي الأمر "ابدأ العمل الآن".

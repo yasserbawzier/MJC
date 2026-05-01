@@ -50,7 +50,7 @@
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
             <!-- table: وسم إنشاء الجدول الأساسي -->
             <!-- w-full text-right: تجعل الجدول يمتد لكامل عرض الشاشة وتجعل النصوص محاذية لليمين -->
-            <table class="w-full text-right">
+            <table class="w-full text-center">
                 
                 <!-- thead: رأس الجدول الذي يحتوي على أسماء الأعمدة (العناوين) -->
                 <thead class="bg-gray-50 border-b">
@@ -62,7 +62,10 @@
                         <th class="p-4 text-gray-600 font-bold">Country</th>
                         <th class="p-4 text-gray-600 font-bold">Company Name</th>
                         <th class="p-4 text-gray-600 font-bold">Company Field</th>
+                        <th class="p-4 text-gray-600 font-bold">Actions</th>
+
                     </tr>
+                  
                 </thead>
                 
                 <!-- tbody: جسم الجدول الذي ستوضع فيه البيانات الحقيقية -->
@@ -70,6 +73,7 @@
                 <tbody id="customersTableBody">
                     <!-- سيتم تعبئة البيانات هنا بواسطة JavaScript من خلال ملف customers.js -->
                 </tbody>
+       
             </table>
         </div>
     </div>
@@ -127,14 +131,17 @@
 
 
 
+<!-- هذا المودال خاص بالتعديل، ويرتبط مع الدالة openEditModal في customers.js -->
+<!-- id="editCustomerModal": نفس المعرف الذي تستخدمه JS للإظهار/الإخفاء -->
 <div id="editCustomerModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
     
     <!-- جسم النافذة (Modal Body) -->
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 overflow-hidden">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6">إضافة عميل جديد</h2>
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">تعديل بيانات العميل</h2>
         
         <!-- نموذج الإدخال (Form) -->
-        <form id="addCustomerForm" class="space-y-4">
+        <!-- id="editCustomerForm": مهم جدًا لأن customers.js يربط عليه حدث submit للتحديث -->
+        <form id="editCustomerForm" class="space-y-4">
             <!-- ملاحظة: لا يوجد حقل لـ ID لأن سوبابيز يولده تلقائياً -->
             
             <div>
@@ -144,28 +151,29 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
-                <input type="text" id="ُeditcustPhone" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="text" id="editCustPhone" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">الدولة</label>
-                <input type="text" id="editcustCountry" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="text" id="editCustCountry" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">اسم الشركة</label>
-                <input type="text" id="editcustCompanyName" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="text" id="editCustCompanyName" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">مجال الشركة</label>
-                <input type="text" id="editcustField" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="text" id="editCustField" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
 
             <!-- أزرار التحكم -->
             <div class="flex justify-end space-x-3 mt-8 gap-2">
                 <!-- type="button": ضروري لكي لا يقوم الزر بإرسال الفورم وتنشيط الصفحة -->
-                <button type="button" onclick="closeAddModal()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                <!-- onclick="closeEditModal()": ينادي دالة JS لإغلاق مودال التعديل -->
+                <button type="button" onclick="closeEditModal()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
                 <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ التعديلات</button>
             </div>
         </form>
@@ -177,10 +185,12 @@
 
     <!-- استدعاء ملفات الـ JS (يتم وضعها في الأسفل لتسريع تحميل واجهة الصفحة أولاً) -->
     
-    <!-- script src="app.js": ربط ملف الإعدادات الرئيسي الذي يحتوي على مفاتيح الربط مع سوبابيز -->
+    <!-- script src="app.js": يجب تحميله أولًا لأنه يعرّف _supabase -->
+    <!-- customers.js يعتمد عليه بشكل مباشر، لذلك ترتيب السكربتات هنا مهم -->
     <script src="app.js"></script>
     
-    <!-- script src="customers.js": ربط ملف المنطق البرمجي الذي يسحب البيانات من السيرفر ويضعها في tbody المذكور أعلاه -->
+    <!-- script src="customers.js": ملف المنطق الذي يتعامل مع الجدول، الإضافة، التعديل، الحذف -->
+    <!-- يعتمد على عناصر HTML (IDs) الموجودة في هذا الملف وعلى _supabase القادم من app.js -->
     <script src="customers.js"></script>
 </body>
 </html>

@@ -1,0 +1,119 @@
+<!-- doctype html: يخبر المتصفح أن هذا المستند من نوع HTML5 -->
+<!DOCTYPE html>
+
+<!-- html: العنصر الجذري لكل عناصر الصفحة -->
+<!-- lang="ar": لغة المحتوى عربية -->
+<!-- dir="rtl": اتجاه الواجهة من اليمين إلى اليسار -->
+<html lang="ar" dir="rtl">
+<head>
+    <!-- meta charset: دعم الحروف العربية بشكل صحيح -->
+    <meta charset="UTF-8">
+
+    <!-- title: اسم الصفحة في تبويب المتصفح -->
+    <title>إدارة تكاليف الشحن</title>
+
+    <!-- Tailwind CSS: لتنسيق الواجهة بسرعة -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Supabase JS: للتعامل مع قاعدة البيانات -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- ملف التنسيق العام للمشروع -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 p-8">
+    <!-- حاوية المحتوى الرئيسية -->
+    <div class="max-w-6xl mx-auto">
+        <!-- رأس الصفحة -->
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">إدارة تكاليف الشحن</h1>
+
+            <!-- زر فتح مودال إضافة سعر شحن -->
+            <button onclick="showAddShippingModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                Add Shipping Rate
+            </button>
+        </header>
+
+        <!-- جدول عرض أسعار الشحن -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <table class="w-full text-right">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <!-- ملاحظة: لا نعرض عمود id للمستخدم -->
+                        <th class="p-4 text-gray-600 font-bold">Country Name</th>
+                        <th class="p-4 text-gray-600 font-bold">Country Code</th>
+                        <th class="p-4 text-gray-600 font-bold">Price per CBM</th>
+                        <th class="p-4 text-gray-600 font-bold text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="shippingTableBody">
+                    <!-- يتم تعبئة البيانات من shipping.js -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- مودال إضافة سعر شحن -->
+    <div id="addShippingModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 overflow-hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">إضافة تكلفة شحن</h2>
+
+            <form id="addShippingForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">اسم الدولة</label>
+                    <input type="text" id="shipCountryName" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">كود الدولة</label>
+                    <input type="text" id="shipCountryCode" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">السعر لكل CBM</label>
+                    <input type="number" step="0.01" id="shipPricePerCbm" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-8 gap-2">
+                    <button type="button" onclick="closeAddShippingModal()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال تعديل سعر الشحن -->
+    <div id="editShippingModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 overflow-hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">تعديل تكلفة الشحن</h2>
+
+            <form id="editShippingForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">اسم الدولة</label>
+                    <input type="text" id="editShipCountryName" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">كود الدولة</label>
+                    <input type="text" id="editShipCountryCode" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">السعر لكل CBM</label>
+                    <input type="number" step="0.01" id="editShipPricePerCbm" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-8 gap-2">
+                    <button type="button" onclick="closeEditShippingModal()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ التعديلات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مهم: تحميل app.js أولاً لأنه يعرف _supabase -->
+    <script src="app.js"></script>
+    <!-- منطق صفحة الشحن -->
+    <script src="shipping.js"></script>
+</body>
+</html>
