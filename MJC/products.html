@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة المنتجات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="App.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-7xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">إدارة المنتجات</h1>
+                <p class="text-gray-600 mt-2">أضف منتجاً واختر نوعه مباشرة من نفس الصفحة.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button onclick="showAddProductModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">إضافة منتج</button>
+                <button onclick="showAddProductTypeModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">إضافة نوع منتج</button>
+                <a href="product_types.html" class="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-300">عرض أنواع المنتجات</a>
+            </div>
+        </header>
+
+        <div class="bg-white rounded-xl shadow-lg p-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">بحث باسم المنتج</label>
+                    <input id="productSearchInput" type="text" placeholder="ابحث عن منتج" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">فلترة بحسب النوع</label>
+                    <select id="productTypeFilter" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                </div>
+                <div class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">فلترة بحسب الحالة</label>
+                    <select id="productStatusFilter" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="all">كل المنتجات</option>
+                        <option value="hasType">يوجد نوع</option>
+                        <option value="noType">بدون نوع</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <table class="w-full text-right">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="p-4 text-gray-600 font-bold">Product Custom ID</th>
+                        <th class="p-4 text-gray-600 font-bold">Product Name</th>
+                        <th class="p-4 text-gray-600 font-bold">Image</th>
+                        <th class="p-4 text-gray-600 font-bold">Specifications</th>
+                        <th class="p-4 text-gray-600 font-bold">Sample Details</th>
+                        <th class="p-4 text-gray-600 font-bold">MOQ</th>
+                        <th class="p-4 text-gray-600 font-bold">Days of Manufacturing</th>
+                        <th class="p-4 text-gray-600 font-bold">Video URL</th>
+                        <th class="p-4 text-gray-600 font-bold">Type</th>
+                        <th class="p-4 text-gray-600 font-bold text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="productsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="addProductModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 px-4 py-6">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <div class="bg-blue-50 border-b border-blue-100 px-6 py-4">
+                <h2 class="text-2xl font-bold text-blue-900">إضافة منتج جديد</h2>
+                <p class="text-sm text-blue-700 mt-1">املأ الحقول ثم اضغط حفظ. يمكن معاينة الصورة مباشرةً هنا.</p>
+            </div>
+            <form id="addProductForm" class="grid gap-4 p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Custom ID</label>
+                        <input type="text" id="productCustomId" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                        <input type="text" id="productName" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">رفع صورة المنتج</label>
+                    <input type="file" id="productImageFile" accept="image/*" capture="environment" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <p class="text-xs text-gray-500 mt-1">اختر صورة من الهاتف أو الكمبيوتر، أو استخدم رابط الصورة أدناه.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Image URL</label>
+                    <input type="url" id="productImageUrl" placeholder="https://..." class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <p class="text-xs text-gray-500 mt-1">استخدم الرابط فقط إذا لم تختر ملفاً، أو لم ترغب برفع الصورة الآن.</p>
+                    <div class="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <img id="productImagePreview" alt="معاينة الصورة" class="hidden w-full max-h-56 object-contain rounded-lg" onerror="handlePreviewError(this, 'productImagePlaceholder')" />
+                        <div id="productImagePlaceholder" class="text-center text-gray-500 text-sm">لا توجد صورة حتى الآن</div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Specifications</label>
+                    <textarea id="productSpecifications" rows="3" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Sample Details</label>
+                    <textarea id="productSampleDetails" rows="3" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">MOQ of Product</label>
+                        <input type="number" id="productMoq" min="0" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Days of Manufacturing</label>
+                        <input type="number" id="productDaysManufacturing" min="0" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Video URL</label>
+                    <input type="url" id="productVideoUrl" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <select id="productTypeId" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                </div>
+                <div class="border-t border-gray-200 pt-4 flex flex-col gap-3">
+                    <div class="rounded-lg bg-blue-50 border border-blue-100 p-3 text-sm text-blue-800">
+                        تأكد من إدخال الرابط الصحيح للصورة قبل الحفظ. إذا لم تظهر الصورة فالرابط غير صالح أو غير متاح.
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:justify-end sm:gap-2 gap-3">
+                        <button type="button" onclick="closeAddProductModal()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                        <button id="saveProductButton" type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ المنتج</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editProductModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 px-4 py-6">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <div class="bg-yellow-50 border-b border-yellow-100 px-6 py-4">
+                <h2 class="text-2xl font-bold text-yellow-900">تعديل المنتج</h2>
+                <p class="text-sm text-yellow-700 mt-1">حفظ التعديلات سيحدث المنتج في النظام فوراً.</p>
+            </div>
+            <form id="editProductForm" class="grid gap-4 p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Custom ID</label>
+                        <input type="text" id="editProductCustomId" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                        <input type="text" id="editProductName" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">رفع صورة المنتج</label>
+                    <input type="file" id="editProductImageFile" accept="image/*" capture="environment" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <p class="text-xs text-gray-500 mt-1">اختر صورة جديدة من الهاتف أو الكمبيوتر إذا أردت تغيير الصورة.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Image URL</label>
+                    <input type="url" id="editProductImageUrl" placeholder="https://..." class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <p class="text-xs text-gray-500 mt-1">يمكنك الاحتفاظ بالرابط الحالي أو تغييره.</p>
+                    <div class="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <img id="editProductImagePreview" alt="معاينة الصورة" class="hidden w-full max-h-56 object-contain rounded-lg" onerror="handlePreviewError(this, 'editProductImagePlaceholder')" />
+                        <div id="editProductImagePlaceholder" class="text-center text-gray-500 text-sm">لا توجد صورة حتى الآن</div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Specifications</label>
+                    <textarea id="editProductSpecifications" rows="3" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Sample Details</label>
+                    <textarea id="editProductSampleDetails" rows="3" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">MOQ of Product</label>
+                        <input type="number" id="editProductMoq" min="0" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Days of Manufacturing</label>
+                        <input type="number" id="editProductDaysManufacturing" min="0" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Video URL</label>
+                    <input type="url" id="editProductVideoUrl" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <select id="editProductTypeId" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                </div>
+                <div class="border-t border-gray-200 pt-4 flex flex-col gap-3">
+                    <div class="rounded-lg bg-yellow-50 border border-yellow-100 p-3 text-sm text-yellow-900">
+                        اضغط حفظ التعديلات بعد مراجعة البيانات. يمكنك معاينة الصورة في نفس النموذج.
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:justify-end sm:gap-2 gap-3">
+                        <button type="button" onclick="closeEditProductModal()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                        <button id="updateProductButton" type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ التعديلات</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="addProductTypeModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 overflow-hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">إضافة نوع منتج</h2>
+            <form id="addProductTypeForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">اسم النوع</label>
+                    <input type="text" id="newTypeName" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">وصف النوع</label>
+                    <textarea id="newTypeDescription" rows="3" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" onclick="closeAddProductTypeModal()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">إضافة النوع</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="imagePreviewModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+        <div class="relative bg-transparent rounded-xl max-w-4xl w-full">
+            <button onclick="closeImageModal()" class="absolute top-4 left-4 bg-white rounded-full p-2 shadow-md text-gray-700 hover:bg-gray-100">X</button>
+            <img id="modalPreviewImage" src="" alt="معاينة الصورة الكبيرة" class="w-full h-auto rounded-xl shadow-2xl object-contain max-h-[90vh] mx-auto">
+        </div>
+    </div>
+    <script src="products.js"></script>
+</body>
+</html>
