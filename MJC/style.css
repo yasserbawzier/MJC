@@ -8,3 +8,26 @@ body {
 .table-container {
     @apply overflow-x-auto shadow-md sm:rounded-lg;
 }
+
+.table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-wrapper table {
+    min-width: max-content;
+    white-space: nowrap;
+}
+
+.invoices-table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+.invoices-table-wrapper table {
+    min-width: 900px;
+    white-space: nowrap;
+}
+

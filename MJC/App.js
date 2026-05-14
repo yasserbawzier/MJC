@@ -15,7 +15,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 // const: تعريف ثابت للكائن الناتج عن الاتصال.
 // _supabase: الاسم الذي سنستخدمه لاحقًا في باقي الملفات لتنفيذ عمليات القراءة/الإضافة/التعديل/الحذف.
-// supabase: كائن عالمي توفره مكتبة @supabase/supabase-js المحملة في Customers.html.
+// supabase: كائن عالمي توفره مكتبة @supabase/supabase-js المحملة في customers.html.
 // .createClient(...): دالة تنشئ "عميل اتصال" مرتبطًا بالمشروع.
 // (SUPABASE_URL, SUPABASE_KEY): نمرر رابط المشروع والمفتاح حتى يعرف العميل أين يرسل الطلبات وبأي صلاحية.
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);

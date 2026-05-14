@@ -144,6 +144,7 @@ async function checkAndLoadInvoices() {
                 <td class="p-4">${item.Price_Per_CBM ?? '-'}</td>
                 <td class="p-4 text-left whitespace-nowrap">
                     <button onclick="openEditInvoiceModal('${item.id}')" class="opacity-0 group-hover:opacity-100 bg-blue-600 text-white px-3 py-1 rounded shadow-sm hover:bg-blue-700 transition-all text-sm ml-2">تعديل</button>
+                    <button onclick="openInvoiceItemsPage('${item.id}')" class="opacity-0 group-hover:opacity-100 bg-green-600 text-white px-3 py-1 rounded shadow-sm hover:bg-green-700 transition-all text-sm ml-2">إضافة عناصر</button>
                     <button onclick="deleteInvoice('${item.id}')" class="opacity-0 group-hover:opacity-100 bg-red-600 text-white px-3 py-1 rounded shadow-sm hover:bg-red-700 transition-all text-sm">حذف</button>
                 </td>
             `;
@@ -153,6 +154,11 @@ async function checkAndLoadInvoices() {
         console.error('فشل تحميل الفواتير:', err);
         tableBody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-red-500">حدث خطأ غير متوقع.</td></tr>';
     }
+}
+
+function openInvoiceItemsPage(invoiceId) {
+    if (!invoiceId) return;
+    window.location.href = `invoice_items.html?invoice_id=${encodeURIComponent(invoiceId)}`;
 }
 
 function showAddInvoiceModal() {

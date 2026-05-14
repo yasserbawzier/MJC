@@ -2,7 +2,7 @@
  * async: تعني "غير متزامن". نضعها قبل الدالة لأننا سنستخدم بداخلها أمر جلب بيانات من الإنترنت 
  * يحتاج لوقت للانتظار، وبدونها سيتجمد المتصفح حتى ينتهي الطلب.
  * function: الكلمة المحجوزة لتعريف دالة (مهمة محددة).
- * هذا الملف مرتبط مباشرة بملف Customers.html:
+ * هذا الملف مرتبط مباشرة بملف customers.html:
  * - يعتمد على وجود عناصر HTML بمعرفات مثل customersTableBody و addCustomerForm و editCustomerForm.
  * - يعتمد على المتغير _supabase الذي تم تعريفه في App.js.
  */
@@ -127,7 +127,7 @@ function closeAddModal() {
  * نربط هذا الكود بحدث "submit" الخاص بالفورم الموجود في HTML
  * لمنع الصفحة من التحديث (Refresh) عند الضغط على زر حفظ.
  */
-// getElementById('addCustomerForm'): جلب فورم الإضافة من Customers.html.
+// getElementById('addCustomerForm'): جلب فورم الإضافة من customers.html.
 // addEventListener('submit', ...): ربط دالة تعمل عند الضغط على زر الإرسال.
 document.getElementById('addCustomerForm').addEventListener('submit', async (e) => {
     
@@ -257,7 +257,7 @@ async function openEditModal(uuid) {
         window.currentEditingId = uuid;
 
         // 4. إظهار النافذة:
-        // classList.remove('hidden'): إزالة كلاس الإخفاء من مودال التعديل الموجود في Customers.html.
+        // classList.remove('hidden'): إزالة كلاس الإخفاء من مودال التعديل الموجود في customers.html.
         document.getElementById('editCustomerModal').classList.remove('hidden');
 
     } catch (err) {

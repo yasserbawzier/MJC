@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <title>عناصر الفاتورة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-gray-100 p-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="mb-4 flex flex-col sm:flex-row sm:justify-between gap-3">
+            <div class="space-x-3">
+                <a href="invoices.html"
+                    class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 inline-block">رجوع للفواتير</a>
+                <a id="itemDesignsLink" href="#"
+                    class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 inline-block">تصاميم العناصر</a>
+                <a href="index.html"
+                    class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 inline-block">الرئيسية</a>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="flex flex-col md:flex-row justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">عناصر الفاتورة</h1>
+                    <p class="mt-3 text-gray-600">رقم الفاتورة: <span id="invoiceNumberDisplay"
+                            class="font-semibold text-gray-900">---</span></p>
+                    <p class="mt-2 text-gray-600">Customer ID: <span id="invoiceCustomerDisplay"
+                            class="font-semibold text-gray-900">---</span> </p>
+                            <p class ="mt-1 text-gray-600">Customer Name: <span id="invoiceCustomerNameDisplay"
+                            class="font-semibold text-gray-900">---</span></p>
+                             <p class ="mt-1 text-gray-600">Shipping Destination : <span id="invoiceShippingDestinationDisplay"
+                            class="font-semibold text-gray-900">---</span></p>
+                </div>
+                
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">إضافة عنصر جديد إلى الفاتورة</h2>
+            <form id="invoiceItemForm" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Item Name (تلقائي)</label>
+                    <input id="itemName" name="item_name" type="text" readonly
+                        class="w-full border border-gray-300 rounded-lg p-2 bg-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="Item 1">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Product</label>
+                    <select id="invoiceItemProductId" name="product_id" required
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">اختر المنتج</option>
+                    </select>
+                    <div id="productPreview" class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hidden">
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <div class="flex-shrink-0">
+                                <img id="productImagePreview" src="" alt="صورة المنتج"
+                                    class="w-24 h-24 object-cover rounded-lg border border-gray-300">
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-800" id="productNamePreview">-</h4>
+                                <p class="text-sm text-gray-600 mt-1"><strong>Product ID:</strong> <span
+                                        id="productIdPreview">-</span></p>
+                                <p class="text-sm text-gray-600 mt-1"><strong>Specifications:</strong> <span
+                                        id="productSpecsPreview">-</span></p>
+                                <p class="text-sm text-gray-600 mt-1"><strong>Sample Details:</strong> <span
+                                        id="productSamplePreview">-</span></p>
+                                <p class="text-sm text-gray-600 mt-1"><strong>MOQ:</strong> <span
+                                        id="productMoqPreview">-</span></p>
+                                <p class="text-sm text-gray-600 mt-1"><strong>Manufacturing Days:</strong> <span
+                                        id="productDaysPreview">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Size</label>
+                    <input id="itemSize" name="size" type="text"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="الحجم">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Specifications</label>
+                    <input id="itemSpecifications" name="specifications" type="text"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="المواصفات">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                    <input id="itemQuantity" name="quantity" type="number" min="0" step="1"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="الكمية">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                    <select id="itemUnitType" name="unit_type"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value=""></option>
+                        <option value="pc">pc</option>
+                        <option value="kg">kg</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Factory Price Per Unit</label>
+                    <input id="itemFactoryPricePerUnit" name="factory_price_per_unit" type="number" min="0" step="0.01"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="السعر لكل وحدة">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Qty Per Ctn</label>
+                    <input id="itemQtyPerCtn" name="qty_par_ctn" type="number" min="0" step="1"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="الكمية في الكرتونة">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">GW Per Ctn KG</label>
+                    <input id="itemGwPerCtnKg" name="gw_per_ctn_kg" type="number" min="0" step="0.01"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="الوزن الإجمالي لكل كرتونة">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Length CM</label>
+                    <input id="itemLengthCm" name="length_cm" type="number" min="0" step="0.01"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="الطول سم">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Width CM</label>
+                    <input id="itemWidthCm" name="width_cm" type="number" min="0" step="0.01"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="العرض سم">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Height CM</label>
+                    <input id="itemHeightCm" name="height_cm" type="number" min="0" step="0.01"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="الارتفاع سم">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Place</label>
+                    <input id="itemPlace" name="place" type="text"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="مكان الشحن أو التخزين">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">صورة العميل</label>
+                    <input id="itemClientPhoto" name="client_photo" type="file" accept="image/*"
+                        class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">صورة الديزان</label>
+                    <input id="itemDesignPhoto" name="design_photo" type="file" accept="image/*"
+                        class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">صورة الديلاين</label>
+                    <input id="itemDielinePhoto" name="dieline_photo" type="file" accept="image/*"
+                        class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+
+                <div class="xl:col-span-2">
+                    <button type="submit" id="saveInvoiceItemButton"
+                        class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">حفظ
+                        العنصر</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg overflow-x-auto">
+            <table class="w-full text-right min-w-[1400px]">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="p-4 text-gray-600 font-bold">Item Name</th>
+                        <th class="p-4 text-gray-600 font-bold">Client Photo</th>
+                        <th class="p-4 text-gray-600 font-bold">Design</th>
+                        <th class="p-4 text-gray-600 font-bold">Dieline</th>
+                        <th class="p-4 text-gray-600 font-bold">Design Details</th>
+                        <th class="p-4 text-gray-600 font-bold">Size</th>
+                        <th class="p-4 text-gray-600 font-bold">Specifications</th>
+                        <th class="p-4 text-gray-600 font-bold">Product ID</th>
+                        <th class="p-4 text-gray-600 font-bold">Factory Image</th>
+                        <th class="p-4 text-gray-600 font-bold">Quantity</th>
+                        <th class="p-4 text-gray-600 font-bold">Factory Price</th>
+                        <th class="p-4 text-gray-600 font-bold">Total Factory Price</th>
+                        <th class="p-4 text-gray-600 font-bold">Qty/Ctn</th>
+                        <th class="p-4 text-gray-600 font-bold">PW/Ctn KG</th>
+                        <th class="p-4 text-gray-600 font-bold">Length CM</th>
+                        <th class="p-4 text-gray-600 font-bold">Width CM</th>
+                        <th class="p-4 text-gray-600 font-bold">Height CM</th>
+                        <th class="p-4 text-gray-600 font-bold">CBM/Ctn</th>
+                        <th class="p-4 text-gray-600 font-bold">Shipping Price/Unit</th>
+                        <th class="p-4 text-gray-600 font-bold">Total Shipping Cost</th>
+                        <th class="p-4 text-gray-600 font-bold text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="invoiceItemsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal for editing -->
+    <div id="editInvoiceItemModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white max-h-[80vh] overflow-y-auto">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">تعديل العنصر</h3>
+                <form id="editInvoiceItemForm" class="space-y-4">
+                    <input type="hidden" id="editInvoiceItemId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Size</label>
+                        <input id="editItemSize" name="size" type="text"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Specifications</label>
+                        <input id="editItemSpecifications" name="specifications" type="text"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                        <input id="editItemQuantity" name="quantity" type="number" min="0" step="1"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                        <select id="editItemUnitType" name="unit_type"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value=""></option>
+                            <option value="pc">pc</option>
+                            <option value="kg">kg</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Factory Price Per Unit</label>
+                        <input id="editItemFactoryPricePerUnit" name="factory_price_per_unit" type="number" min="0" step="0.01"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Qty Per Ctn</label>
+                        <input id="editItemQtyPerCtn" name="qty_per_ctn" type="number" min="0" step="1"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">GW Per Ctn KG</label>
+                        <input id="editItemGwPerCtnKg" name="gw_per_ctn_kg" type="number" min="0" step="0.01"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Length CM</label>
+                        <input id="editItemLengthCm" name="length_cm" type="number" min="0" step="0.01"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Width CM</label>
+                        <input id="editItemWidthCm" name="width_cm" type="number" min="0" step="0.01"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Height CM</label>
+                        <input id="editItemHeightCm" name="height_cm" type="number" min="0" step="0.01"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Place</label>
+                        <input id="editItemPlace" name="place" type="text"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">صورة العميل</label>
+                        <input id="editItemClientPhoto" name="client_photo" type="file" accept="image/*"
+                            class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <div id="editClientPhotoPreview" class="mt-2 hidden">
+                            <img id="editClientPhotoPreviewImg" src="" alt="Client Photo" class="w-24 h-24 object-cover rounded-lg border border-gray-300" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">صورة الديزان</label>
+                        <input id="editItemDesignPhoto" name="design_photo" type="file" accept="image/*"
+                            class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <div id="editDesignPhotoPreview" class="mt-2 hidden">
+                            <img id="editDesignPhotoPreviewImg" src="" alt="Design Photo" class="w-24 h-24 object-cover rounded-lg border border-gray-300" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">صورة الديلاين</label>
+                        <input id="editItemDielinePhoto" name="dieline_photo" type="file" accept="image/*"
+                            class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <div id="editDielinePhotoPreview" class="mt-2 hidden">
+                            <img id="editDielinePhotoPreviewImg" src="" alt="Dieline Photo" class="w-24 h-24 object-cover rounded-lg border border-gray-300" />
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" onclick="closeEditModal()"
+                            class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">إلغاء</button>
+                        <button id="updateInvoiceItemButton" type="submit"
+                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">حفظ التعديلات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="App.js"></script>
+    <script src="invoice_items.js"></script>
+</body>
+
+</html>
