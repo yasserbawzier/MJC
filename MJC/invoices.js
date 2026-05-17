@@ -284,8 +284,51 @@ async function updateEditedInvoiceData(e) {
     }
 }
 
+// نظام إشعارات ذكي لترتيب التنبيهات فوق بعضها في حالة الحذف المتعدد
+function showToast(message, type = 'info') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'fixed bottom-4 right-4 flex flex-col gap-2 z-[9999] max-w-sm select-none';
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = `px-5 py-3 rounded-xl shadow-2xl text-white font-bold flex items-center gap-3 transition-all duration-300 transform translate-y-2 opacity-0`;
+    if (type === 'success') toast.classList.add('bg-green-600');
+    else if (type === 'error') toast.classList.add('bg-red-600');
+    else toast.classList.add('bg-blue-600', 'animate-bounce');
+    toast.innerHTML = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+    }, 10);
+    return {
+        update: (newMessage, newType) => {
+            toast.className = `px-5 py-3 rounded-xl shadow-2xl text-white font-bold flex items-center gap-3 transition-all duration-300`;
+            if (newType === 'success') toast.classList.add('bg-green-600');
+            else if (newType === 'error') toast.classList.add('bg-red-600');
+            else toast.classList.add('bg-blue-600');
+            toast.innerHTML = newMessage;
+        },
+        remove: () => {
+            toast.classList.add('translate-y-2', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }
+    };
+}
+
 async function deleteInvoice(uuid) {
     if (!confirm('هل أنت متأكد من حذف هذه الفاتورة؟')) return;
+
+    // 1. إنشاء وإظهار تنبيه الحذف المتحرك فوراً لإشعار المستخدم بالعملية الجارية
+    const toast = showToast(`
+        <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        جاري حذف الفاتورة حالياً...
+    `);
 
     try {
         const { error } = await _supabase
@@ -294,11 +337,20 @@ async function deleteInvoice(uuid) {
             .eq('id', uuid);
 
         if (error) throw error;
-        alert('تم الحذف بنجاح ✅');
-        checkAndLoadInvoices();
+
+        // 2. تحديث قائمة الفواتير
+        await checkAndLoadInvoices();
+
+        // 3. عرض رسالة النجاح وتعديل مظهر التنبيه للون الأخضر الأنيق
+        toast.update('🎉 تم حذف الفاتورة بنجاح!', 'success');
+        setTimeout(() => toast.remove(), 2500);
+
     } catch (err) {
         console.error('فشل الحذف:', err.message);
-        alert('حدث خطأ أثناء الحذف: ' + err.message);
+        
+        // 4. عرض رسالة الفشل باللون الأحمر
+        toast.update('❌ فشل الحذف: ' + (err.message || 'حدث خطأ ما'), 'error');
+        setTimeout(() => toast.remove(), 4000);
     }
 }
 

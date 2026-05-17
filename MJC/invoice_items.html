@@ -11,12 +11,10 @@
 
 <body class="bg-gray-100 p-8">
     <div class="max-w-7xl mx-auto">
-        <div class="mb-4 flex flex-col sm:flex-row sm:justify-between gap-3">
+        <div class="mb-4 flex flex-col sm:flex-row sm:justify-between items-center gap-3">
             <div class="space-x-3">
                 <a href="invoices.html"
                     class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 inline-block">رجوع للفواتير</a>
-                <a id="itemDesignsLink" href="#"
-                    class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 inline-block">تصاميم العناصر</a>
                 <a href="index.html"
                     class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 inline-block">الرئيسية</a>
             </div>
@@ -25,194 +23,145 @@
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
             <div class="flex flex-col md:flex-row justify-between gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-800">عناصر الفاتورة</h1>
+                    <h1 class="text-3xl font-bold text-gray-800">الفاتورة</h1>
                     <p class="mt-3 text-gray-600">رقم الفاتورة: <span id="invoiceNumberDisplay"
                             class="font-semibold text-gray-900">---</span></p>
                     <p class="mt-2 text-gray-600">Customer ID: <span id="invoiceCustomerDisplay"
                             class="font-semibold text-gray-900">---</span> </p>
-                            <p class ="mt-1 text-gray-600">Customer Name: <span id="invoiceCustomerNameDisplay"
+                    <p class="mt-1 text-gray-600">Customer Name: <span id="invoiceCustomerNameDisplay"
                             class="font-semibold text-gray-900">---</span></p>
-                             <p class ="mt-1 text-gray-600">Shipping Destination : <span id="invoiceShippingDestinationDisplay"
+                    <p class="mt-1 text-gray-600">Shipping Destination : <span id="invoiceShippingDestinationDisplay"
+                            class="font-semibold text-gray-900">---</span></p>
+                    <p class="mt-1 text-gray-600">Shipping Price Per CBM : <span id="invoiceCbmPriceDisplay"
                             class="font-semibold text-gray-900">---</span></p>
                 </div>
-                
+
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">إضافة عنصر جديد إلى الفاتورة</h2>
-            <form id="invoiceItemForm" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Item Name (تلقائي)</label>
-                    <input id="itemName" name="item_name" type="text" readonly
-                        class="w-full border border-gray-300 rounded-lg p-2 bg-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="Item 1">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Product</label>
-                    <select id="invoiceItemProductId" name="product_id" required
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="">اختر المنتج</option>
-                    </select>
-                    <div id="productPreview" class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hidden">
-                        <div class="flex flex-col md:flex-row gap-4">
-                            <div class="flex-shrink-0">
-                                <img id="productImagePreview" src="" alt="صورة المنتج"
-                                    class="w-24 h-24 object-cover rounded-lg border border-gray-300">
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="font-semibold text-gray-800" id="productNamePreview">-</h4>
-                                <p class="text-sm text-gray-600 mt-1"><strong>Product ID:</strong> <span
-                                        id="productIdPreview">-</span></p>
-                                <p class="text-sm text-gray-600 mt-1"><strong>Specifications:</strong> <span
-                                        id="productSpecsPreview">-</span></p>
-                                <p class="text-sm text-gray-600 mt-1"><strong>Sample Details:</strong> <span
-                                        id="productSamplePreview">-</span></p>
-                                <p class="text-sm text-gray-600 mt-1"><strong>MOQ:</strong> <span
-                                        id="productMoqPreview">-</span></p>
-                                <p class="text-sm text-gray-600 mt-1"><strong>Manufacturing Days:</strong> <span
-                                        id="productDaysPreview">-</span></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Size</label>
-                    <input id="itemSize" name="size" type="text"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="الحجم">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Specifications</label>
-                    <input id="itemSpecifications" name="specifications" type="text"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="المواصفات">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-                    <input id="itemQuantity" name="quantity" type="number" min="0" step="1"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="الكمية">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                    <select id="itemUnitType" name="unit_type"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value=""></option>
-                        <option value="pc">pc</option>
-                        <option value="kg">kg</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Factory Price Per Unit</label>
-                    <input id="itemFactoryPricePerUnit" name="factory_price_per_unit" type="number" min="0" step="0.01"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="السعر لكل وحدة">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Qty Per Ctn</label>
-                    <input id="itemQtyPerCtn" name="qty_par_ctn" type="number" min="0" step="1"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="الكمية في الكرتونة">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">GW Per Ctn KG</label>
-                    <input id="itemGwPerCtnKg" name="gw_per_ctn_kg" type="number" min="0" step="0.01"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="الوزن الإجمالي لكل كرتونة">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Length CM</label>
-                    <input id="itemLengthCm" name="length_cm" type="number" min="0" step="0.01"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="الطول سم">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Width CM</label>
-                    <input id="itemWidthCm" name="width_cm" type="number" min="0" step="0.01"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="العرض سم">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Height CM</label>
-                    <input id="itemHeightCm" name="height_cm" type="number" min="0" step="0.01"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="الارتفاع سم">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Place</label>
-                    <input id="itemPlace" name="place" type="text"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="مكان الشحن أو التخزين">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">صورة العميل</label>
-                    <input id="itemClientPhoto" name="client_photo" type="file" accept="image/*"
-                        class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">صورة الديزان</label>
-                    <input id="itemDesignPhoto" name="design_photo" type="file" accept="image/*"
-                        class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">صورة الديلاين</label>
-                    <input id="itemDielinePhoto" name="dieline_photo" type="file" accept="image/*"
-                        class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
-                </div>
-
-                <div class="xl:col-span-2">
-                    <button type="submit" id="saveInvoiceItemButton"
-                        class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">حفظ
-                        العنصر</button>
-                </div>
-            </form>
+        <!-- زر تصفية العناصر النشطة بين معلومات الفاتورة والجدول -->
+        <div class="mb-4 flex justify-start select-none">
+            <button type="button" id="toggleActiveFilterBtn" onclick="toggleActiveItemsFilter()"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 shadow-sm active:scale-95">
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+                <span id="filterBtnText">عرض العناصر النشطة فقط</span>
+            </button>
         </div>
 
         <div class="bg-white rounded-xl shadow-lg overflow-x-auto">
             <table class="w-full text-right min-w-[1400px]">
-                <thead class="bg-gray-50 border-b">
+                <thead class="bg-gray-50 border-b text-center text-xs whitespace-nowrap">
                     <tr>
-                        <th class="p-4 text-gray-600 font-bold">Item Name</th>
-                        <th class="p-4 text-gray-600 font-bold">Client Photo</th>
-                        <th class="p-4 text-gray-600 font-bold">Design</th>
-                        <th class="p-4 text-gray-600 font-bold">Dieline</th>
-                        <th class="p-4 text-gray-600 font-bold">Design Details</th>
-                        <th class="p-4 text-gray-600 font-bold">Size</th>
-                        <th class="p-4 text-gray-600 font-bold">Specifications</th>
-                        <th class="p-4 text-gray-600 font-bold">Product ID</th>
-                        <th class="p-4 text-gray-600 font-bold">Factory Image</th>
-                        <th class="p-4 text-gray-600 font-bold">Quantity</th>
-                        <th class="p-4 text-gray-600 font-bold">Factory Price</th>
-                        <th class="p-4 text-gray-600 font-bold">Total Factory Price</th>
-                        <th class="p-4 text-gray-600 font-bold">Qty/Ctn</th>
-                        <th class="p-4 text-gray-600 font-bold">PW/Ctn KG</th>
-                        <th class="p-4 text-gray-600 font-bold">Length CM</th>
-                        <th class="p-4 text-gray-600 font-bold">Width CM</th>
-                        <th class="p-4 text-gray-600 font-bold">Height CM</th>
-                        <th class="p-4 text-gray-600 font-bold">CBM/Ctn</th>
-                        <th class="p-4 text-gray-600 font-bold">Shipping Price/Unit</th>
-                        <th class="p-4 text-gray-600 font-bold">Total Shipping Cost</th>
-                        <th class="p-4 text-gray-600 font-bold text-left">Actions</th>
+                        <th class="p-3 text-white font-bold bg-[#5B9BD5] border border-gray-300">Item</th>
+                        <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Client Photo</th>
+                        <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Design</th>
+                        <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Dieline</th>
+                        <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Design details</th>
+                        <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Size</th>
+                        <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Specifications</th>
+                        <th class="p-3 text-black font-bold bg-[#F8CBAD] border border-gray-300">ProductID</th>
+                        <th class="p-3 text-black font-bold bg-[#F8CBAD] border border-gray-300">Product Image</th>
+                        <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Sample</th>
+                        <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Production</th>
+                        <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">MOQ</th>
+                        <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Unit</th>
+                        <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Factory price</th>
+                        <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Total Amount</th>
+                        <th class="p-3 text-white font-bold bg-[#C00000] border border-gray-300">Shipping Price/Unit
+                        </th>
+                        <th class="p-3 text-white font-bold bg-[#C00000] border border-gray-300">Total Shipping</th>
+                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">Quantity/CTN</th>
+                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">CTN</th>
+                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">GW/CTN KG</th>
+                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">L</th>
+                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">W</th>
+                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">H</th>
+                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">CBM/CTN</th>
+                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">Total CBM</th>
+                        <th class="p-3 text-black font-bold bg-[#D9D9D9] border border-gray-300">place</th>
+                        <th class="p-3 text-black font-bold bg-[#D9D9D9] border border-gray-300">status</th>
+                        <th class="p-3 text-black font-bold bg-[#D9D9D9] border border-gray-300 text-left">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="invoiceItemsTableBody"></tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="50" class="p-4 border-t border-gray-100 bg-gray-50/50">
+                            <button onclick="addNewBlankInvoiceItem()"
+                                class="w-full bg-blue-50 border-2 border-blue-200 border-dashed text-blue-600 hover:bg-blue-100 hover:border-blue-300 py-3 rounded-xl font-bold transition duration-200 flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                إضافة عنصر جديد
+                            </button>
+                        </td>
+                    </tr>
+                </tfoot>
             </table>
+        </div>
+
+        <!-- أزرار الإجراءات تحت الجدول -->
+        <div class="mt-6 flex justify-center gap-4">
+
+            <a id="itemDesignsLink" href="#"
+                class="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg shadow-purple-100 hover:shadow-xl hover:shadow-purple-200 hover:translate-y-[-2px] active:scale-95 transition-all duration-200 group text-base select-none">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                    </path>
+                </svg>
+                تصاميم العناصر
+            </a>
+        </div>
+    </div>
+
+    <!-- Product Details Modal (نافذة عرض بيانات المنتج) -->
+    <div id="productDetailsModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden relative">
+            <button type="button" onclick="closeProductDetailsModal()"
+                class="absolute top-4 left-4 bg-gray-200 rounded-full p-2 text-gray-700 hover:bg-gray-300 transition z-10 w-8 h-8 flex items-center justify-center font-bold">X</button>
+            <div class="p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">بيانات المنتج المصنعي</h3>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="w-full md:w-1/3">
+                        <img id="modalProductImage" src="" alt="صورة المنتج"
+                            class="w-full h-auto object-cover rounded-lg border border-gray-300 shadow-sm cursor-pointer"
+                            onclick="openImageModal(this.src)">
+                        <p class="text-xs text-center text-gray-500 mt-2">اضغط على الصورة لتكبيرها</p>
+                    </div>
+                    <div class="w-full md:w-2/3 space-y-3 text-right">
+                        <div>
+                            <span class="block text-sm font-semibold text-gray-500">Product Name</span>
+                            <span id="modalProductName" class="text-lg font-bold text-gray-800">-</span>
+                        </div>
+                        <div>
+                            <span class="block text-sm font-semibold text-gray-500">Product Custom ID</span>
+                            <span id="modalProductId" class="text-gray-800">-</span>
+                        </div>
+                        <div>
+                            <span class="block text-sm font-semibold text-gray-500">Specifications</span>
+                            <span id="modalProductSpecs"
+                                class="text-gray-800 block bg-gray-50 p-2 rounded border">-</span>
+                        </div>
+                        <div>
+                            <span class="block text-sm font-semibold text-gray-500">Sample Details</span>
+                            <span id="modalProductSample"
+                                class="text-gray-800 block bg-gray-50 p-2 rounded border">-</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <span class="block text-sm font-semibold text-gray-500">MOQ</span>
+                                <span id="modalProductMoq" class="text-gray-800">-</span>
+                            </div>
+                            <div>
+                                <span class="block text-sm font-semibold text-gray-500">Days of Manufacturing</span>
+                                <span id="modalProductDays" class="text-gray-800">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -234,7 +183,7 @@
                             class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">MOQ (الكمية المطلوبة)</label>
                         <input id="editItemQuantity" name="quantity" type="number" min="0" step="1"
                             class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
@@ -248,8 +197,25 @@
                         </select>
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Sample Details (العينة)</label>
+                        <input id="editItemSample" name="sample" type="text"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Production (التصنيع)</label>
+                        <input id="editItemProduction" name="production" type="text"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CTN (عدد الكراتين - اختياري)</label>
+                        <input id="editItemCtn" name="ctn" type="number" min="0" step="1"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="يُحسب تلقائياً إذا تُرك فارغاً">
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Factory Price Per Unit</label>
-                        <input id="editItemFactoryPricePerUnit" name="factory_price_per_unit" type="number" min="0" step="0.01"
+                        <input id="editItemFactoryPricePerUnit" name="factory_price_per_unit" type="number" min="0"
+                            step="0.01"
                             class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                     <div>
@@ -277,7 +243,7 @@
                         <input id="editItemHeightCm" name="height_cm" type="number" min="0" step="0.01"
                             class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
-                
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Place</label>
                         <input id="editItemPlace" name="place" type="text"
@@ -288,7 +254,8 @@
                         <input id="editItemClientPhoto" name="client_photo" type="file" accept="image/*"
                             class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
                         <div id="editClientPhotoPreview" class="mt-2 hidden">
-                            <img id="editClientPhotoPreviewImg" src="" alt="Client Photo" class="w-24 h-24 object-cover rounded-lg border border-gray-300" />
+                            <img id="editClientPhotoPreviewImg" src="" alt="Client Photo"
+                                class="w-24 h-24 object-cover rounded-lg border border-gray-300" />
                         </div>
                     </div>
                     <div>
@@ -296,7 +263,8 @@
                         <input id="editItemDesignPhoto" name="design_photo" type="file" accept="image/*"
                             class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
                         <div id="editDesignPhotoPreview" class="mt-2 hidden">
-                            <img id="editDesignPhotoPreviewImg" src="" alt="Design Photo" class="w-24 h-24 object-cover rounded-lg border border-gray-300" />
+                            <img id="editDesignPhotoPreviewImg" src="" alt="Design Photo"
+                                class="w-24 h-24 object-cover rounded-lg border border-gray-300" />
                         </div>
                     </div>
                     <div>
@@ -304,7 +272,8 @@
                         <input id="editItemDielinePhoto" name="dieline_photo" type="file" accept="image/*"
                             class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
                         <div id="editDielinePhotoPreview" class="mt-2 hidden">
-                            <img id="editDielinePhotoPreviewImg" src="" alt="Dieline Photo" class="w-24 h-24 object-cover rounded-lg border border-gray-300" />
+                            <img id="editDielinePhotoPreviewImg" src="" alt="Dieline Photo"
+                                class="w-24 h-24 object-cover rounded-lg border border-gray-300" />
                         </div>
                     </div>
                     <div class="flex justify-end space-x-2">
@@ -317,6 +286,118 @@
             </div>
         </div>
     </div>
+
+    <!-- 
+      هذا هو الكود الخاص بالنافذة المنبثقة (Modal) التي تظهر عند الضغط على أي صورة لتكبيرها.
+      - id="imagePreviewModal": هو المعرف الذي نستخدمه في الجافاسكريبت لإظهار وإخفاء هذه النافذة.
+      - onclick="closeImageModal()": تقوم بتشغيل دالة الإغلاق عند الضغط على زر (X).
+      - id="modalPreviewImage": هو وسم الصورة الذي نقوم بتغيير الرابط (src) الخاص به من خلال الجافاسكريبت ليعرض الصورة التي تم الضغط عليها.
+    -->
+    <div id="imagePreviewModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] p-4">
+        <div class="relative bg-transparent rounded-xl max-w-4xl w-full">
+            <button type="button" onclick="closeImageModal()"
+                class="absolute top-4 left-4 bg-white rounded-full p-2 shadow-md text-gray-700 hover:bg-gray-100 z-10 w-10 h-10 flex items-center justify-center font-bold text-xl leading-none">X</button>
+            <img id="modalPreviewImage" src="" alt="معاينة الصورة الكبيرة"
+                class="w-full h-auto rounded-xl shadow-2xl object-contain max-h-[90vh] mx-auto">
+        </div>
+    </div>
+
+    <!-- مودال اختيار وتغيير المنتج الفاخر -->
+    <div id="productSelectorModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-3xl max-h-[85vh] flex flex-col relative border border-gray-100 text-right">
+            <!-- Close Button -->
+            <button type="button" onclick="closeProductSelectorModal()"
+                class="absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 z-10">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+
+            <h3 class="text-xl font-bold text-gray-800 text-center mb-4">ربط وتغيير منتج البند</h3>
+
+            <!-- Search Box -->
+            <div class="mb-4 relative">
+                <input type="text" id="productSelectorSearchInput" oninput="filterSelectorProducts()"
+                    placeholder="البحث برمز المنتج (Custom ID) أو الاسم..."
+                    class="w-full border border-gray-300 rounded-xl p-3 pr-10 focus:ring-2 focus:ring-blue-500 outline-none text-right dir-rtl" />
+                <span class="absolute right-3 top-3.5 text-gray-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </span>
+            </div>
+
+            <!-- Products Grid / List Container -->
+            <div class="flex-1 overflow-y-auto space-y-3 p-1" id="productSelectorGrid">
+                <!-- Cards will be dynamically loaded here by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال خيارات الصورة المتقدمة -->
+    <div id="photoActionsModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 max-w-full relative border border-gray-100 text-right">
+            <button type="button" onclick="closePhotoActionsModal()"
+                class="absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <h3 class="text-lg font-bold text-gray-800 text-center mb-6" id="photoActionsTitle">خيارات الصورة</h3>
+
+            <div class="space-y-4">
+                <!-- خيار العرض -->
+                <button type="button" id="viewPhotoActionBtn"
+                    class="w-full flex items-center justify-between p-4 rounded-xl border border-blue-100 bg-blue-50 hover:bg-blue-100 text-blue-900 font-semibold transition-all duration-200 group">
+                    <svg class="w-5 h-5 text-blue-400 transform group-hover:translate-x-[-4px] transition-transform"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                        </path>
+                    </svg>
+                    <span class="flex items-center gap-3">
+                        <span class="p-2 rounded-lg bg-blue-500 text-white shadow-md shadow-blue-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                                </path>
+                            </svg>
+                        </span>
+                        عرض الصورة الكبيرة
+                    </span>
+                </button>
+
+                <!-- خيار الرفع/التغيير -->
+                <button type="button" id="uploadPhotoActionBtn"
+                    class="w-full flex items-center justify-between p-4 rounded-xl border border-green-100 bg-green-50 hover:bg-green-100 text-green-900 font-semibold transition-all duration-200 group">
+                    <svg class="w-5 h-5 text-green-400 transform group-hover:translate-x-[-4px] transition-transform"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                        </path>
+                    </svg>
+                    <span class="flex items-center gap-3">
+                        <span class="p-2 rounded-lg bg-green-500 text-white shadow-md shadow-green-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                            </svg>
+                        </span>
+                        رفع صورة جديدة
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- مدخل ملف مخفي لإجراء الرفع التلقائي السريع -->
+    <input type="file" id="hiddenPhotoSelectorInput" accept="image/*" class="hidden" />
 
     <script src="App.js"></script>
     <script src="invoice_items.js"></script>

@@ -195,39 +195,73 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
     }
 });
 
-/**
- * deleteThisCustomer: الدالة المسؤولة عن الحذف الفعلي.
- * targetUuid: هو الـ UUID الذي أرسلناه من الزر المخفي.
- */
+// نظام إشعارات ذكي لترتيب التنبيهات فوق بعضها في حالة الحذف المتعدد
+function showToast(message, type = 'info') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'fixed bottom-4 right-4 flex flex-col gap-2 z-[9999] max-w-sm select-none';
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = `px-5 py-3 rounded-xl shadow-2xl text-white font-bold flex items-center gap-3 transition-all duration-300 transform translate-y-2 opacity-0`;
+    if (type === 'success') toast.classList.add('bg-green-600');
+    else if (type === 'error') toast.classList.add('bg-red-600');
+    else toast.classList.add('bg-blue-600', 'animate-bounce');
+    toast.innerHTML = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+    }, 10);
+    return {
+        update: (newMessage, newType) => {
+            toast.className = `px-5 py-3 rounded-xl shadow-2xl text-white font-bold flex items-center gap-3 transition-all duration-300`;
+            if (newType === 'success') toast.classList.add('bg-green-600');
+            else if (newType === 'error') toast.classList.add('bg-red-600');
+            else toast.classList.add('bg-blue-600');
+            toast.innerHTML = newMessage;
+        },
+        remove: () => {
+            toast.classList.add('translate-y-2', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }
+    };
+}
+
 async function deleteThisCustomer(targetUuid) {
-    
-    // 1. confirm: رسالة تأكيد لحماية البيانات من الحذف الخاطئ.
     if (!confirm("هل أنت متأكد من رغبتك في حذف هذا العميل نهائياً؟")) return;
 
+    // 1. إنشاء وإظهار تنبيه الحذف المتحرك فوراً لإشعار المستخدم بالعملية الجارية
+    const toast = showToast(`
+        <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        جاري حذف العميل حالياً...
+    `);
+
     try {
-        /**
-         * _supabase: العميل المعرف في app.js.
-         * .delete(): أمر الحذف.
-         * .eq('id', targetUuid): البحث عن السطر الذي يطابق الـ UUID الممرر.
-         * ملاحظة: سوبابيز يبحث في عمود id (الذي هو UUID) ويحذف السطر فوراً.
-         */
         const { error } = await _supabase
             .from('customers')
             .delete()
             .eq('id', targetUuid);
 
-        // 2. التحقق من الخطأ.
         if (error) throw error;
 
-        // 3. النجاح وتحديث الواجهة.
-        alert("تم الحذف بنجاح! ✅");
-        
-        // إعادة تحميل الدالة لعرض الجدول المحدث.
-        checkAndLoadCustomers();
+        // 2. تحديث قائمة العملاء
+        await checkAndLoadCustomers();
+
+        // 3. عرض رسالة النجاح وتعديل مظهر التنبيه للون الأخضر الأنيق
+        toast.update('🎉 تم حذف العميل بنجاح!', 'success');
+        setTimeout(() => toast.remove(), 2500);
 
     } catch (err) {
         console.error("فشل في الحذف:", err.message);
-        alert("حدث خطأ أثناء محاولة الحذف.");
+        
+        // 4. عرض رسالة الفشل باللون الأحمر
+        toast.update('❌ فشل الحذف: ' + (err.message || 'حدث خطأ ما'), 'error');
+        setTimeout(() => toast.remove(), 4000);
     }
 }
 /**

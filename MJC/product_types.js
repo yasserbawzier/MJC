@@ -110,14 +110,39 @@ async function updateType(event) {
 
 async function deleteType(id) {
     if (!confirm('هل أنت متأكد من حذف هذا النوع؟')) return;
-    const { error } = await _supabase.from('product_types').delete().eq('id', id);
-    if (error) {
+
+    // 1. إنشاء وإظهار تنبيه الحذف المتحرك فوراً لإشعار المستخدم بالعملية الجارية
+    const notification = document.createElement('div');
+    notification.className = 'fixed bottom-4 right-4 bg-blue-600 text-white px-6 py-3 rounded-xl shadow-2xl z-[100] flex items-center gap-3 animate-bounce select-none';
+    notification.innerHTML = `
+        <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        جاري حذف نوع المنتج حالياً...
+    `;
+    document.body.appendChild(notification);
+
+    try {
+        const { error } = await _supabase.from('product_types').delete().eq('id', id);
+        if (error) throw error;
+
+        // 2. تحديث قائمة أنواع المنتجات
+        await loadTypes();
+
+        // 3. عرض رسالة النجاح وتعديل مظهر التنبيه للون الأخضر الأنيق
+        notification.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-xl shadow-2xl z-[100] flex items-center gap-2 select-none';
+        notification.innerHTML = '🎉 تم حذف نوع المنتج بنجاح!';
+        setTimeout(() => notification.remove(), 3000);
+
+    } catch (error) {
         console.error('Error deleting type:', error);
-        alert('فشل الحذف');
-        return;
+        
+        // 4. عرض رسالة الفشل باللون الأحمر
+        notification.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-6 py-3 rounded-xl shadow-2xl z-[100] flex items-center gap-2 select-none';
+        notification.innerHTML = '❌ فشل الحذف: ' + (error.message || 'حدث خطأ ما');
+        setTimeout(() => notification.remove(), 4000);
     }
-    await loadTypes();
-    alert('تم حذف النوع');
 }
 
 document.getElementById('addTypeForm').addEventListener('submit', addType);
