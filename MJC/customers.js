@@ -30,19 +30,19 @@ async function checkAndLoadCustomers() {
 
         // مسح محتوى الجدول القديم للبدء برسم البيانات الجديدة
         tableBody.innerHTML = '';
-        
-       /**
- * هذا الجزء داخل حلقة data.forEach في ملف customers.js
- */
-// data.forEach: تكرار على كل عميل مستلم من قاعدة البيانات.
-// customer => { ... }: كل دورة تعطينا كائن عميل واحد.
-data.forEach(customer => {
-    // createElement('tr'): إنشاء صف جدول جديد لكل عميل.
-    const row = document.createElement('tr');
-    // className: إضافة تنسيقات Tailwind للصف (حدود، تحويم، مؤثرات).
-    row.className = "border-b hover:bg-blue-50 transition cursor-pointer relative group";
 
-    row.innerHTML = `
+        /**
+  * هذا الجزء داخل حلقة data.forEach في ملف customers.js
+  */
+        // data.forEach: تكرار على كل عميل مستلم من قاعدة البيانات.
+        // customer => { ... }: كل دورة تعطينا كائن عميل واحد.
+        data.forEach(customer => {
+            // createElement('tr'): إنشاء صف جدول جديد لكل عميل.
+            const row = document.createElement('tr');
+            // className: إضافة تنسيقات Tailwind للصف (حدود، تحويم، مؤثرات).
+            row.className = "border-b hover:bg-blue-50 transition cursor-pointer relative group";
+
+            row.innerHTML = `
         <td class="p-4 text-sm text-gray-500">${customer.customer_custom_id || '-'}</td>
         <td class="p-4 font-bold text-gray-800">${customer.full_name || 'بدون اسم'}</td>
         <td class="p-4 font-mono text-sm">${customer.phone || '-'}</td>
@@ -68,8 +68,8 @@ data.forEach(customer => {
             </button>
         </td>
     `;
-    tableBody.appendChild(row);
-});
+            tableBody.appendChild(row);
+        });
 
         console.log("تم تحديث الجدول بنجاح! ✅");
 
@@ -121,7 +121,7 @@ function closeModal(modalId, formId = null, clearEditingState = false) {
 function closeAddModal() {
     closeModal('addCustomerModal', 'addCustomerForm');
 }
- 
+
 
 /**
  * نربط هذا الكود بحدث "submit" الخاص بالفورم الموجود في HTML
@@ -130,13 +130,13 @@ function closeAddModal() {
 // getElementById('addCustomerForm'): جلب فورم الإضافة من customers.html.
 // addEventListener('submit', ...): ربط دالة تعمل عند الضغط على زر الإرسال.
 document.getElementById('addCustomerForm').addEventListener('submit', async (e) => {
-    
+
     // 1. e.preventDefault(): تمنع المتصفح من القيام بسلوكه الافتراضي (وهو إعادة تحميل الصفحة)
     e.preventDefault();
 
-// 1. الوصول إلى زر الحفظ داخل الفورم لكي نتحكم به
+    // 1. الوصول إلى زر الحفظ داخل الفورم لكي نتحكم به
     const submitBtn = e.target.querySelector('button[type="submit"]');
-// 2. تفعيل "حالة التحميل" ومنع النقر المزدوج:
+    // 2. تفعيل "حالة التحميل" ومنع النقر المزدوج:
     // .disabled = true: تجعل الزر غير قابل للضغط تماماً، وهذا يحل مشكلة التكرار التي واجهتها
     submitBtn.disabled = true;
     // .innerText: نغير النص داخل الزر لإعطاء انطباع للمستخدم أن العملية جارية
@@ -160,12 +160,12 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
         const { data, error } = await _supabase
             .from('customers')
             .insert([
-                { 
-                    full_name: name, 
-                    phone: phone, 
-                    country_code: country, 
+                {
+                    full_name: name,
+                    phone: phone,
+                    country_code: country,
                     company_name: company,
-                    company_field: field 
+                    company_field: field
                 }
             ]);
 
@@ -174,17 +174,17 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
 
         // 5. إذا نجح الحفظ:
         alert("تم حفظ العميل بنجاح! ✅");
-        
+
         // إغلاق النافذة المنبثقة (نستدعي الدالة التي كتبناها سابقاً في نفس الملف)
-        closeAddModal(); 
-        
+        closeAddModal();
+
         // إعادة تحديث الجدول لعرض العميل الجديد فوراً دون الحاجة لعمل Refresh يدوي
-        checkAndLoadCustomers(); 
+        checkAndLoadCustomers();
 
     } catch (err) {
         console.error("خطأ في الحفظ:", err.message);
         alert("حدث خطأ أثناء الحفظ: " + err.message);
-    }finally {
+    } finally {
         /**
          * finally: هذا الجزء يتنفذ دائماً سواء نجح الحفظ أو فشل
          * وظيفته: إعادة الزر لحالته الطبيعية ليتمكن المستخدم من استخدامه مرة أخرى
@@ -258,7 +258,7 @@ async function deleteThisCustomer(targetUuid) {
 
     } catch (err) {
         console.error("فشل في الحذف:", err.message);
-        
+
         // 4. عرض رسالة الفشل باللون الأحمر
         toast.update('❌ فشل الحذف: ' + (err.message || 'حدث خطأ ما'), 'error');
         setTimeout(() => toast.remove(), 4000);

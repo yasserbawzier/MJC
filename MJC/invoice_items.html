@@ -20,11 +20,11 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <div class="flex flex-col md:flex-row justify-between gap-4">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-800">الفاتورة</h1>
-                    <p class="mt-3 text-gray-600">رقم الفاتورة: <span id="invoiceNumberDisplay"
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6" dir="ltr">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="text-left" dir="ltr">
+                    <h1 class="text-3xl font-bold text-gray-800">Invoice / فاتورة</h1>
+                    <p class="mt-3 text-gray-600">Invoice number: <span id="invoiceNumberDisplay"
                             class="font-semibold text-gray-900">---</span></p>
                     <p class="mt-2 text-gray-600">Customer ID: <span id="invoiceCustomerDisplay"
                             class="font-semibold text-gray-900">---</span> </p>
@@ -40,7 +40,7 @@
         </div>
 
         <!-- زر تصفية العناصر النشطة بين معلومات الفاتورة والجدول -->
-        <div class="mb-4 flex justify-start select-none">
+        <div class="mb-4 flex justify-start select-none" dir="ltr">
             <button type="button" id="toggleActiveFilterBtn" onclick="toggleActiveItemsFilter()"
                 class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 shadow-sm active:scale-95">
                 <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -48,9 +48,9 @@
             </button>
         </div>
 
-        <div class="bg-white rounded-xl shadow-lg overflow-x-auto">
-            <table class="w-full text-right min-w-[1400px]">
-                <thead class="bg-gray-50 border-b text-center text-xs whitespace-nowrap">
+        <div class="bg-white rounded-xl shadow-lg overflow-x-auto" dir="ltr">
+            <table class="w-full text-left min-w-[1400px]" dir="ltr">
+                <thead class="bg-gray-50 border-b text-left text-xs whitespace-nowrap">
                     <tr>
                         <th class="p-3 text-white font-bold bg-[#5B9BD5] border border-gray-300">Item</th>
                         <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Client Photo</th>
@@ -67,6 +67,8 @@
                         <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Unit</th>
                         <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Factory price</th>
                         <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Total Amount</th>
+                        <th class="p-3 text-white font-bold bg-[#C00000] border border-gray-300">Fixed Shipping Rate
+                        </th>
                         <th class="p-3 text-white font-bold bg-[#C00000] border border-gray-300">Shipping Price/Unit
                         </th>
                         <th class="p-3 text-white font-bold bg-[#C00000] border border-gray-300">Total Shipping</th>
@@ -90,7 +92,8 @@
                             <button onclick="addNewBlankInvoiceItem()"
                                 class="w-full bg-blue-50 border-2 border-blue-200 border-dashed text-blue-600 hover:bg-blue-100 hover:border-blue-300 py-3 rounded-xl font-bold transition duration-200 flex items-center justify-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
                                 </svg>
                                 إضافة عنصر جديد
                             </button>

@@ -175,7 +175,7 @@ function renderProductsTable() {
         tbody.innerHTML = '';
         filtered.forEach(product => {
             const row = document.createElement('tr');
-            row.className = 'border-b hover:bg-blue-50 transition text-center';
+            row.className = 'border-b hover:bg-blue-50 transition text-left';
 
             // تتبع حالة رفع ميديا المنتج تفاؤلياً
             const imageTrackerKey = `${product.id}_product_image_url`;
@@ -250,7 +250,7 @@ function renderProductsTable() {
             }
 
             // قائمة منسدلة لاختيار النوع
-            let typeSelectHtml = `<select onchange="updateProductFieldInline('${product.id}', 'type_id', this)" class="border border-gray-300 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium text-gray-700 select-none">`;
+            let typeSelectHtml = `<select onchange="updateProductFieldInline('${product.id}', 'type_id', this)" class="border border-gray-300 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium text-gray-700 select-none" dir="ltr">`;
             typeSelectHtml += `<option value="">بدون نوع</option>`;
             productTypes.forEach(type => {
                 const selected = product.type_id === type.id ? 'selected' : '';
@@ -259,15 +259,15 @@ function renderProductsTable() {
             typeSelectHtml += `</select>`;
 
             row.innerHTML = `
-                <td class="p-4 text-sm text-gray-400 bg-gray-50 font-mono select-none">${product.product_custom_id || '-'}</td>
-                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'product_name', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 font-medium text-gray-900 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150">${product.product_name || ''}</td>
-                <td class="p-4">${imageCell}</td>
-                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'specifications', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 text-sm text-gray-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150 whitespace-pre-wrap">${product.specifications || ''}</td>
-                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'sample_details', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 text-sm text-gray-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150 whitespace-pre-wrap">${product.sample_details || ''}</td>
-                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'moq_of_product', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 text-gray-700 font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150">${product.moq_of_product ?? ''}</td>
-                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'days_of_manufacturing', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 text-gray-700 font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150">${product.days_of_manufacturing ?? ''}</td>
-                <td class="p-4">${videoCell}</td>
-                <td class="p-4">${typeSelectHtml}</td>
+                <td class="p-4 text-sm text-gray-400 bg-gray-50 font-mono select-none" dir="ltr">${product.product_custom_id || '-'}</td>
+                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'product_name', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 font-medium text-gray-900 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150" dir="ltr">${product.product_name || ''}</td>
+                <td class="p-4 text-center">${imageCell}</td>
+                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'specifications', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 text-sm text-gray-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150 whitespace-pre-wrap" dir="ltr">${product.specifications || ''}</td>
+                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'sample_details', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 text-sm text-gray-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150 whitespace-pre-wrap" dir="ltr">${product.sample_details || ''}</td>
+                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'moq_of_product', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 text-gray-700 font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150" dir="ltr">${product.moq_of_product ?? ''}</td>
+                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'days_of_manufacturing', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 text-gray-700 font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150" dir="ltr">${product.days_of_manufacturing ?? ''}</td>
+                <td class="p-4 text-center">${videoCell}</td>
+                <td class="p-4" dir="ltr">${typeSelectHtml}</td>
                 <td class="p-4 text-left whitespace-nowrap select-none">
                     <button onclick="deleteProduct('${product.id}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm">حذف</button>
                 </td>
