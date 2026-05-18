@@ -40,8 +40,19 @@ async function loadInvoiceDetails() {
     document.getElementById('invoiceCbmPriceDisplay').textContent = data.Price_Per_CBM ? Number(data.Price_Per_CBM).toFixed(2) : '-';
 }
 
-async function loadProducts() {
-    const { data, error } = await _supabase.from('products').select('id, product_custom_id, product_image_url, product_name');
+async function loadProductsForItems() {
+    // Extract unique valid product_ids from current items
+    const productIds = [...new Set(commissionsItems.map(item => item.product_id).filter(id => id))];
+    if (productIds.length === 0) {
+        productsMap = {};
+        return;
+    }
+
+    const { data, error } = await _supabase
+        .from('products')
+        .select('id, product_custom_id, product_image_url, product_name')
+        .in('id', productIds);
+
     if (error) { console.error('Products fetch error:', error.message); return; }
     productsMap = {};
     (data || []).forEach(p => { productsMap[p.id] = p; });
@@ -55,7 +66,7 @@ async function loadCommissionItems() {
         .order('created_at', { ascending: true });
 
     if (error) { console.error('Items fetch error:', error.message); return; }
-    
+
     // Populate notes_commission locally from localStorage
     commissionsItems = (data || []).map(item => {
         item.notes_commission = localStorage.getItem(`notes_commission_${item.id}`) || 'factory';
@@ -399,13 +410,15 @@ async function initCommissionsPage() {
         return;
     }
 
-    // Load everything in parallel
+    // Load parallel independent requests first
     await Promise.all([
         loadInvoiceDetails(),
-        loadProducts(),
         loadCommissionRates(),
         loadCommissionItems()
     ]);
+
+    // Load products strictly needed for these items
+    await loadProductsForItems();
 
     renderCommissionsTable();
 
