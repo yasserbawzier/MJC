@@ -145,7 +145,7 @@ async function checkAndLoadInvoices() {
                 <td class="p-4 text-left whitespace-nowrap">
                     <button onclick="openEditInvoiceModal('${item.id}')" class="opacity-0 group-hover:opacity-100 bg-blue-600 text-white px-3 py-1 rounded shadow-sm hover:bg-blue-700 transition-all text-sm ml-2">تعديل</button>
                     <button onclick="openInvoiceItemsPage('${item.id}')" class="opacity-0 group-hover:opacity-100 bg-green-600 text-white px-3 py-1 rounded shadow-sm hover:bg-green-700 transition-all text-sm ml-2">إضافة عناصر</button>
-                    <button onclick="openCommissionsPage('${item.id}')" class="opacity-0 group-hover:opacity-100 bg-yellow-500 text-white px-3 py-1 rounded shadow-sm hover:bg-yellow-600 transition-all text-sm ml-2">العمولات</button>
+                    <button onclick="openInvoiceCommissionsPage('${item.id}')" class="opacity-0 group-hover:opacity-100 bg-yellow-500 text-white px-3 py-1 rounded shadow-sm hover:bg-yellow-600 transition-all text-sm ml-2">العمولات</button>
                     <button onclick="deleteInvoice('${item.id}')" class="opacity-0 group-hover:opacity-100 bg-red-600 text-white px-3 py-1 rounded shadow-sm hover:bg-red-700 transition-all text-sm">حذف</button>
                 </td>
             `;
@@ -162,7 +162,7 @@ function openInvoiceItemsPage(invoiceId) {
     window.location.href = `invoice_items.html?invoice_id=${encodeURIComponent(invoiceId)}`;
 }
 
-function openCommissionsPage(invoiceId) {
+function openInvoiceCommissionsPage(invoiceId) {
     if (!invoiceId) return;
     window.location.href = `commissions.html?invoice_id=${encodeURIComponent(invoiceId)}`;
 }

@@ -337,8 +337,7 @@ function renderInvoiceItemsTable() {
             <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'unit_type', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 100px;" dir="ltr">${item.unit_type || ''}</td>
             <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'factory_price_per_unit', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 120px;" dir="ltr">${item.factory_price_per_unit || 0}</td>
             <td class="p-3 text-sm text-gray-700 border border-gray-200 text-left bg-blue-50" dir="ltr">${formatNumber(totalFactory)}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'shipping_rate_fixed', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm font-bold text-red-700 border border-gray-200 text-left hover:bg-red-100 focus:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap bg-red-50" style="min-width: 100px;" dir="ltr">${item.shipping_rate_fixed !== null && item.shipping_rate_fixed !== undefined ? item.shipping_rate_fixed : ''}</td>
-            <td class="p-3 text-sm text-gray-700 border border-gray-200 text-left" dir="ltr">${formatNumber(item.shipping_price_per_unit)}</td>
+            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'shipping_price_per_unit', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer font-semibold whitespace-pre-wrap" style="min-width: 120px;" dir="ltr">${item.shipping_price_per_unit !== null && item.shipping_price_per_unit !== undefined ? item.shipping_price_per_unit : 0}</td>
             <td class="p-3 text-sm text-gray-700 border border-gray-200 text-left bg-red-50" dir="ltr">${formatNumber(item.total_shipping_cost)}</td>
             <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'qty_per_ctn', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 120px;" dir="ltr">${item.qty_per_ctn || 0}</td>
             <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'CTN', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer bg-yellow-50 whitespace-pre-wrap" style="min-width: 100px;" dir="ltr">${item.CTN !== null && item.CTN !== undefined ? item.CTN : ''}</td>
@@ -365,7 +364,7 @@ function renderInvoiceItemsTable() {
         <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-blue-50">${formatNumber(totalMOQ)}</td>
         <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="2">-</td>
         <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-blue-100">${formatNumber(totalAmountVal)}</td>
-        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="2">-</td>
+        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center">-</td>
         <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-red-100">${formatNumber(totalShippingVal)}</td>
         <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center">-</td>
         <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-yellow-100">${formatNumber(totalCtnVal)}</td>
@@ -374,6 +373,22 @@ function renderInvoiceItemsTable() {
         <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="3">-</td>
     `;
     tbody.appendChild(totalRow);
+
+    // تحديث قيم بطاقات الإحصائيات في الصفحة
+    const statQty = document.getElementById('statTotalQuantity');
+    if (statQty) statQty.textContent = totalMOQ.toLocaleString('en-US');
+
+    const statCtn = document.getElementById('statTotalCtn');
+    if (statCtn) statCtn.textContent = totalCtnVal.toLocaleString('en-US');
+
+    const statCbm = document.getElementById('statTotalCbm');
+    if (statCbm) statCbm.textContent = totalCbmVal.toFixed(4);
+
+    const statShipping = document.getElementById('statTotalShipping');
+    if (statShipping) statShipping.textContent = '$' + totalShippingVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const statFactory = document.getElementById('statTotalFactory');
+    if (statFactory) statFactory.textContent = '$' + totalAmountVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // تحميل المنتجات
@@ -401,6 +416,16 @@ async function loadInvoiceDetails() {
     const designsLink = document.getElementById('itemDesignsLink');
     if (designsLink) {
         designsLink.href = `item_designs.html?invoice_id=${currentInvoiceId}`;
+    }
+    // تحديث رابط عمولات الفاتورة
+    const commissionsLink = document.getElementById('itemCommissionsLink');
+    if (commissionsLink) {
+        commissionsLink.href = `commissions.html?invoice_id=${currentInvoiceId}`;
+    }
+    // تحديث رابط عرض الفاتورة للعميل جاهزة للطباعة
+    const customerInvoiceLink = document.getElementById('customerInvoiceLink');
+    if (customerInvoiceLink) {
+        customerInvoiceLink.href = `customer_invoice.html?invoice_id=${currentInvoiceId}`;
     }
 }
 
@@ -803,7 +828,7 @@ function initInvoiceItemsPage() {
 window.addEventListener('DOMContentLoaded', initInvoiceItemsPage);
 
 // دالة إعادة الحساب محلياً وتحديث المتغيرات فوراً (Optimistic UI updates)
-function recalculateLocalItemFields(item, keepCtn = false) {
+function recalculateLocalItemFields(item, keepCtn = false, fieldName = '') {
     // 1. حساب عدد الكراتين (CTN)
     if (!keepCtn) {
         if (item.quantity && item.qty_per_ctn) {
@@ -827,18 +852,22 @@ function recalculateLocalItemFields(item, keepCtn = false) {
         item.total_cbm = null;
     }
 
-    // 4. حساب تكلفة الشحن الإجمالية Total Shipping Cost
-    if (item.total_cbm !== null && currentShippingRatePerCbm) {
-        item.total_shipping_cost = Number((item.total_cbm * currentShippingRatePerCbm).toFixed(2));
+    // 4. حساب تكلفة الشحن الإجمالية و شحن القطعة
+    if (fieldName === 'shipping_price_per_unit') {
+        item.total_shipping_cost = Number(((item.shipping_price_per_unit || 0) * (item.quantity || 0)).toFixed(2));
     } else {
-        item.total_shipping_cost = 0;
-    }
+        if (item.total_cbm !== null && currentShippingRatePerCbm) {
+            item.total_shipping_cost = Number((item.total_cbm * currentShippingRatePerCbm).toFixed(2));
+        } else {
+            item.total_shipping_cost = 0;
+        }
 
-    // 5. حساب تكلفة شحن القطعة الواحدة Shipping Price per Unit
-    if (item.total_shipping_cost && item.quantity) {
-        item.shipping_price_per_unit = Number((item.total_shipping_cost / item.quantity).toFixed(4));
-    } else {
-        item.shipping_price_per_unit = 0;
+        // 5. حساب تكلفة شحن القطعة الواحدة Shipping Price per Unit
+        if (item.total_shipping_cost && item.quantity) {
+            item.shipping_price_per_unit = Number((item.total_shipping_cost / item.quantity).toFixed(4));
+        } else {
+            item.shipping_price_per_unit = 0;
+        }
     }
 }
 
@@ -851,7 +880,7 @@ async function updateInvoiceItemFieldInline(itemId, fieldName, element) {
     let parsedValue = rawValue;
 
     // الحقول الرقمية
-    const numericFields = ['quantity', 'factory_price_per_unit', 'qty_per_ctn', 'gw_per_ctn_kg', 'length_cm', 'width_cm', 'height_cm', 'CTN'];
+    const numericFields = ['quantity', 'factory_price_per_unit', 'qty_per_ctn', 'gw_per_ctn_kg', 'length_cm', 'width_cm', 'height_cm', 'CTN', 'shipping_price_per_unit'];
     if (numericFields.includes(fieldName)) {
         // إزالة الفواصل إن وجدت
         rawValue = rawValue.replace(/,/g, '');
@@ -889,7 +918,7 @@ async function updateInvoiceItemFieldInline(itemId, fieldName, element) {
 
     // 2. إعادة حساب الحقول الحسابية التابعة محلياً فوراً
     const keepManualCtn = (fieldName === 'CTN');
-    recalculateLocalItemFields(item, keepManualCtn);
+    recalculateLocalItemFields(item, keepManualCtn, fieldName);
 
     // 3. إعادة رسم الجدول والمجاميع فوراً (بسرعة 1 مللي ثانية) بدون أي انتظار للشبكة!
     renderInvoiceItemsTable();
@@ -898,6 +927,9 @@ async function updateInvoiceItemFieldInline(itemId, fieldName, element) {
     let updatePayload = { [fieldName]: parsedValue };
     if (fieldName === 'quantity' || fieldName === 'qty_per_ctn') {
         updatePayload["CTN"] = item.CTN;
+    }
+    if (fieldName === 'shipping_price_per_unit') {
+        updatePayload["total_shipping_cost"] = item.total_shipping_cost;
     }
 
     // إضاءة الخلية المعدلة محلياً في الجدول لإعطاء تلميح بصري لطيف بالحفظ
@@ -1442,4 +1474,231 @@ function toggleActiveItemsFilter() {
     }
 
     renderInvoiceItemsTable();
+}
+
+// ==========================================
+// وظائف مودال إضافة منتج جديد فاخر
+// ==========================================
+
+async function openAddProductModal() {
+    // 1. تصفير النموذج
+    const form = document.getElementById('newProductForm');
+    if (form) form.reset();
+
+    // 2. تحميل الأنواع من قاعدة البيانات وتعبئة المنسدلة
+    const typeSelect = document.getElementById('newProductTypeId');
+    if (typeSelect) {
+        typeSelect.innerHTML = '<option value="">اختر نوع المنتج...</option>';
+        try {
+            const { data, error } = await _supabase.from('product_types').select('*').order('created_at', { ascending: false });
+            if (!error && data) {
+                data.forEach(type => {
+                    const opt = document.createElement('option');
+                    opt.value = type.id;
+                    opt.textContent = type.category_name;
+                    typeSelect.appendChild(opt);
+                });
+            }
+        } catch (e) {
+            console.error('Error fetching product types in modal:', e);
+        }
+    }
+
+    // 3. إظهار المودال
+    const modal = document.getElementById('addProductModal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeAddProductModal() {
+    const modal = document.getElementById('addProductModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+// ضغط الصورة تلقائياً لتقليل الحجم وتسريع الرفع بمعدل 10 أضعاف للمنتج الجديد
+async function compressProductImageIfNeeded(file) {
+    if (!file || !file.type.startsWith('image/') || file.type.includes('svg')) {
+        return file;
+    }
+    if (file.size < 300 * 1024) {
+        return file;
+    }
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const MAX_SIZE = 1200;
+                if (width > height) {
+                    if (width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    }
+                } else {
+                    if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        resolve(compressedFile);
+                    } else {
+                        resolve(file);
+                    }
+                }, 'image/jpeg', 0.8);
+            };
+            img.onerror = () => resolve(file);
+        };
+        reader.onerror = () => resolve(file);
+    });
+}
+
+// رفع ميديا المنتجات (صورة / فيديو)
+async function uploadProductMediaFile(file) {
+    if (!file) return null;
+    const extension = file.name.split('.').pop() || 'jpg';
+    const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${extension}`;
+    const filePath = `products/${fileName}`;
+    const { error } = await _supabase.storage.from('product-images').upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+    });
+    if (error) {
+        throw new Error(`Upload error: ${error.message || error.details || JSON.stringify(error)}`);
+    }
+    const { data: publicData, error: publicError } = _supabase.storage.from('product-images').getPublicUrl(filePath);
+    if (publicError) {
+        throw new Error(`Public URL error: ${publicError.message || publicError.details || JSON.stringify(publicError)}`);
+    }
+    return publicData?.publicUrl || null;
+}
+
+async function submitAddProduct(event) {
+    event.preventDefault();
+
+    const name = document.getElementById('newProductName').value.trim();
+    const typeId = document.getElementById('newProductTypeId').value || null;
+    const specs = document.getElementById('newProductSpecs').value.trim();
+    const sample = document.getElementById('newProductSample').value.trim();
+    const moqVal = document.getElementById('newProductMoq').value;
+    const daysVal = document.getElementById('newProductDays').value;
+
+    const imgFile = document.getElementById('newProductImage').files?.[0];
+    const vidFile = document.getElementById('newProductVideo').files?.[0];
+
+    const submitBtn = document.getElementById('submitNewProductBtn');
+    const spinner = document.getElementById('submitNewProductSpinner');
+
+    // 1. تفعيل اللودر وتعطيل الزر
+    if (submitBtn) submitBtn.disabled = true;
+    if (spinner) spinner.classList.remove('hidden');
+
+    // إشعار بصري للمستخدم
+    const toast = showToast(`
+        <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        جاري معالجة ورفع بيانات المنتج الجديد...
+    `);
+
+    try {
+        // 2. توليد معرف منتج مخصص تلقائياً وبشكل فريد تماماً
+        const slug = name.replace(/[\s\W]+/g, '_');
+        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        const customId = `P_${slug}_${randomNum}`;
+
+        // 3. معالجة ورفع الصورة
+        let imageUrl = '';
+        if (imgFile) {
+            const compressedImg = await compressProductImageIfNeeded(imgFile);
+            imageUrl = await uploadProductMediaFile(compressedImg);
+        }
+
+        // 4. معالجة ورفع الفيديو
+        let videoUrl = '';
+        if (vidFile) {
+            // التحقق من حجم الفيديو (باقة Supabase المجانية تدعم حتى 50 ميجابايت)
+            const maxVideoSize = 50 * 1024 * 1024;
+            if (vidFile.size > maxVideoSize) {
+                throw new Error('حجم الفيديو كبير جداً! الحد الأقصى هو 50MB.');
+            }
+            videoUrl = await uploadProductMediaFile(vidFile);
+        }
+
+        // 5. إعداد كائن المنتج
+        const productPayload = {
+            product_custom_id: customId,
+            product_name: name,
+            product_image_url: imageUrl,
+            specifications: specs,
+            sample_details: sample,
+            moq_of_product: moqVal ? parseInt(moqVal) : null,
+            days_of_manufacturing: daysVal ? parseInt(daysVal) : null,
+            product_video_url: videoUrl,
+            type_id: typeId
+        };
+
+        // 6. إدخال السجل في جدول products
+        const { data: newProd, error: insertError } = await _supabase
+            .from('products')
+            .insert([productPayload])
+            .select('*')
+            .single();
+
+        if (insertError) throw insertError;
+
+        // 7. إعادة تحميل الذاكرة المحلية للمنتجات
+        await loadProductsLookup();
+
+        // 8. إذا كان هناك بند نشط تم فتح مودال المنتجات من أجله، نقوم بربطه به تلقائياً!
+        if (activeProductSelectorItemId && newProd) {
+            // نقوم بتحديث البند في جدول invoice_items
+            const { error: linkError } = await _supabase
+                .from('invoice_items')
+                .update({ product_id: newProd.id })
+                .eq('id', activeProductSelectorItemId);
+
+            if (!linkError) {
+                // تحديث الذاكرة المحلية للبند
+                const itemIndex = invoiceItems.findIndex(i => i.id === activeProductSelectorItemId);
+                if (itemIndex !== -1) {
+                    invoiceItems[itemIndex].product_id = newProd.id;
+                }
+            }
+            // إغلاق مودال اختيار المنتجات
+            closeProductSelectorModal();
+            activeProductSelectorItemId = null;
+        }
+
+        // 9. إعادة رسم جدول عناصر الفاتورة
+        renderInvoiceItemsTable();
+
+        // 10. إغلاق مودال الإضافة وإرجاع حالة النموذج والزر
+        closeAddProductModal();
+
+        toast.update(`🎉 تم إضافة المنتج الجديد [${customId}] بنجاح!`, 'success');
+        setTimeout(() => toast.remove(), 3000);
+
+    } catch (err) {
+        console.error('Error adding product:', err);
+        toast.update(`❌ فشل إضافة المنتج: ${err.message}`, 'error');
+        setTimeout(() => toast.remove(), 5000);
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+        if (spinner) spinner.classList.add('hidden');
+    }
 }
