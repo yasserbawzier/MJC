@@ -6,6 +6,7 @@ let currentCustomerName = '-';
 let currentShippingRatePerCbm = 0;
 let uploadingPhotosTracker = {};
 let showOnlyActive = false;
+let sortActiveFirst = false;
 
 // دالة تنسيق الأرقام
 function formatNumber(value) {
@@ -100,29 +101,43 @@ function showToast(message, type = 'info') {
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
-        container.className = 'fixed bottom-4 right-4 flex flex-col gap-2 z-[9999] max-w-sm select-none';
         document.body.appendChild(container);
     }
     const toast = document.createElement('div');
-    toast.className = `px-5 py-3 rounded-xl shadow-2xl text-white font-bold flex items-center gap-3 transition-all duration-300 transform translate-y-2 opacity-0`;
-    if (type === 'success') toast.classList.add('bg-green-600');
-    else if (type === 'error') toast.classList.add('bg-red-600');
-    else toast.classList.add('bg-blue-600', 'animate-bounce');
-    toast.innerHTML = message;
+    toast.className = `toast-item ${type} hidden-toast`;
+
+    // إعداد الأيقونة بناءً على نوع التنبيه
+    let icon = '';
+    if (type === 'success') {
+        icon = `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+    } else if (type === 'error') {
+        icon = `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+    } else {
+        icon = `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+    }
+
+    toast.innerHTML = `${icon}<span>${message}</span>`;
     container.appendChild(toast);
+
     setTimeout(() => {
-        toast.classList.remove('translate-y-2', 'opacity-0');
+        toast.classList.remove('hidden-toast');
     }, 10);
+
     return {
         update: (newMessage, newType) => {
-            toast.className = `px-5 py-3 rounded-xl shadow-2xl text-white font-bold flex items-center gap-3 transition-all duration-300`;
-            if (newType === 'success') toast.classList.add('bg-green-600');
-            else if (newType === 'error') toast.classList.add('bg-red-600');
-            else toast.classList.add('bg-blue-600');
-            toast.innerHTML = newMessage;
+            toast.className = `toast-item ${newType}`;
+            let newIcon = '';
+            if (newType === 'success') {
+                newIcon = `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+            } else if (newType === 'error') {
+                newIcon = `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+            } else {
+                newIcon = `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            }
+            toast.innerHTML = `${newIcon}<span>${newMessage}</span>`;
         },
         remove: () => {
-            toast.classList.add('translate-y-2', 'opacity-0');
+            toast.classList.add('hidden-toast');
             setTimeout(() => toast.remove(), 300);
         }
     };
@@ -151,38 +166,37 @@ function updateItemNameField() {
     itemNameInput.placeholder = nextName;
 }
 
-async function reorderInvoiceItems() {
-    const { data, error } = await _supabase.from('invoice_items')
-        .select('id, item_name, created_at')
-        .eq('invoice_id', currentInvoiceId)
-        .order('created_at', { ascending: true });
-
-    if (error) {
-        console.error(error.message);
-        return;
-    }
-
-    const items = data || [];
-    const updates = [];
-
-    items.forEach((item, index) => {
-        const expectedName = `Item ${index + 1}`;
-        if (item.item_name !== expectedName) {
-            updates.push({ id: item.id, item_name: expectedName });
-        }
-    });
-
-    // تحديثات متوازية فائقة السرعة بالتوازي لتفادي بطء الشبكة
-    if (updates.length > 0) {
-        await Promise.all(updates.map(update =>
-            _supabase.from('invoice_items')
-                .update({ item_name: update.item_name })
-                .eq('id', update.id)
-        ));
-    }
-
-    await loadInvoiceItems();
+function getItemNumber(name) {
+    if (!name) return 999999;
+    const match = name.toString().match(/\d+/);
+    return match ? parseInt(match[0], 10) : 999999;
 }
+
+async function reorderInvoiceItems() {
+    sortActiveFirst = true;
+
+    const sortedData = [...invoiceItems].sort((a, b) => {
+        const aActive = a.status === true;
+        const bActive = b.status === true;
+        if (aActive && !bActive) return -1;
+        if (!aActive && bActive) return 1;
+
+        return new Date(a.created_at) - new Date(b.created_at);
+    });
+    invoiceItems = sortedData;
+
+    renderInvoiceItemsTable();
+    updateInvoiceItemsFooter();
+
+    const t = showToast("تم إعادة ترتيب الجدول (النشط أولاً) بنجاح! ✨", "success");
+    setTimeout(() => t.remove(), 3000);
+}
+
+// ===================================================
+// استيراد Excel - محوّل إلى excel_import.js
+// ===================================================
+// تم نقل منطق استيراد Excel الكامل إلى ملف excel_import.js
+// الوظائف المتاحة: handleExcelFileSelected, confirmExcelImport, closeExcelImportModal
 
 // تعبئة قائمة المنتجات المنسدلة
 function renderProductOptions() {
@@ -238,48 +252,26 @@ function renderInvoiceItemsTable() {
         return;
     }
 
-    tbody.innerHTML = '';
-
-    // متغيرات المجموع الإجمالي
-    let totalMOQ = 0;
-    let totalAmountVal = 0;
-    let totalShippingVal = 0;
-    let totalCtnVal = 0;
-    let totalCbmVal = 0;
+    const fragment = document.createDocumentFragment();
 
     itemsToRender.forEach(item => {
         const product = getProductById(item.product_id);
         const productCustomId = product ? product.product_custom_id || '-' : '-';
-        // --- شرح التعديل: ---
-        // قمنا بتغيير دالة الزر لكي تفتح نافذة "بيانات المنتج" بدلاً من صورة فقط.
-        // openProductDetailsModal(product.id): تمرر المعرف الخاص بالمنتج ليتم عرض جميع بياناته في النافذة.
-        const productImage = product && product.product_image_url ? `<button type="button" onclick='openProductDetailsModal("${product.id}")' class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition"><img src="${product.product_image_url}" alt="Factory Image" class="w-16 h-16 object-cover"></button>` : '-';
+        const productImage = product && product.product_image_url ? `<button type="button" onclick='openProductDetailsModal("${product.id}")' class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition"><img src="${product.product_image_url}" alt="Factory Image" class="w-16 h-16 object-cover" loading="lazy"></button>` : '-';
 
         const totalFactory = (item.quantity || 0) * (item.factory_price_per_unit || 0);
 
-        // حساب CBM
         const cbmPerCtn = item.length_cm && item.width_cm && item.height_cm
             ? ((Number(item.length_cm) / 100) * (Number(item.width_cm) / 100) * (Number(item.height_cm) / 100)).toFixed(4)
             : null;
 
-        // حساب عدد الكراتين (CTN) يدوياً أو تلقائياً
         const ctnValue = item.CTN !== null && item.CTN !== undefined
             ? item.CTN
             : ((item.quantity && item.qty_per_ctn) ? Math.ceil(item.quantity / item.qty_per_ctn) : null);
 
-        // حساب إجمالي حجم الشحن (Total CBM)
         const totalCbm = item.total_cbm !== null && item.total_cbm !== undefined
             ? item.total_cbm
             : ((cbmPerCtn !== null && ctnValue !== null) ? (Number(cbmPerCtn) * Number(ctnValue)).toFixed(4) : '-');
-
-        // تجميع المجاميع
-        totalMOQ += Number(item.quantity || 0);
-        totalAmountVal += totalFactory;
-        totalShippingVal += Number(item.total_shipping_cost || 0);
-        totalCtnVal += Number(ctnValue || 0);
-        if (totalCbm !== '-' && totalCbm !== null) {
-            totalCbmVal += Number(totalCbm);
-        }
 
         const itemPhotos = itemPhotosLookup[item.id] || {};
 
@@ -291,90 +283,149 @@ function renderInvoiceItemsTable() {
         const isClientPhotoUploading = uploadingPhotosTracker[`${item.id}_client_photo_url`];
         const clientPhotoCell = clientPhotoCellUrl
             ? `<div class="relative w-16 h-16 mx-auto">
-                <button type="button" onclick="openPhotoActionsModal('${item.id}', 'client_photo_url', '${clientPhotoCellUrl}')" class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition w-full h-full"><img src="${clientPhotoCellUrl}" alt="Client Photo" class="w-full h-full object-cover ${isClientPhotoUploading ? 'opacity-40 blur-[1px]' : ''}"></button>
+                <button type="button" ${item.status === true ? `onclick="openPhotoActionsModal('${item.id}', 'client_photo_url', '${clientPhotoCellUrl}')"` : `onclick="openImageModal('${clientPhotoCellUrl}')"`} class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition w-full h-full"><img src="${clientPhotoCellUrl}" alt="Client Photo" class="w-full h-full object-cover ${isClientPhotoUploading ? 'opacity-40 blur-[1px]' : ''}" loading="lazy"></button>
                 ${isClientPhotoUploading ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><svg class="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>' : ''}
                </div>`
-            : `<button type="button" onclick="openPhotoActionsModal('${item.id}', 'client_photo_url', null)" class="flex flex-col items-center justify-center w-16 h-16 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-500 transition-all duration-200 mx-auto"><span class="text-lg font-bold">+</span><span class="text-[9px]">إضافة</span></button>`;
+            : (item.status === true
+                ? `<button type="button" onclick="openPhotoActionsModal('${item.id}', 'client_photo_url', null)" class="flex flex-col items-center justify-center w-16 h-16 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-500 transition-all duration-200 mx-auto"><span class="text-lg font-bold">+</span><span class="text-[9px]">إضافة</span></button>`
+                : `<div class="flex flex-col items-center justify-center w-16 h-16 bg-gray-100 border border-gray-200 rounded-lg text-gray-300 mx-auto select-none"><span class="text-lg font-bold">-</span></div>`);
 
         const designPhotoCellUrl = itemPhotos.design_photo_url || null;
         const isDesignPhotoUploading = uploadingPhotosTracker[`${item.id}_design_photo_url`];
         const designPhotoCell = designPhotoCellUrl
             ? `<div class="relative w-16 h-16 mx-auto">
-                <button type="button" onclick="openPhotoActionsModal('${item.id}', 'design_photo_url', '${designPhotoCellUrl}')" class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition w-full h-full"><img src="${designPhotoCellUrl}" alt="Design Photo" class="w-full h-full object-cover ${isDesignPhotoUploading ? 'opacity-40 blur-[1px]' : ''}"></button>
+                <button type="button" ${item.status === true ? `onclick="openPhotoActionsModal('${item.id}', 'design_photo_url', '${designPhotoCellUrl}')"` : `onclick="openImageModal('${designPhotoCellUrl}')"`} class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition w-full h-full"><img src="${designPhotoCellUrl}" alt="Design Photo" class="w-full h-full object-cover ${isDesignPhotoUploading ? 'opacity-40 blur-[1px]' : ''}" loading="lazy"></button>
                 ${isDesignPhotoUploading ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><svg class="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>' : ''}
                </div>`
-            : `<button type="button" onclick="openPhotoActionsModal('${item.id}', 'design_photo_url', null)" class="flex flex-col items-center justify-center w-16 h-16 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-500 transition-all duration-200 mx-auto"><span class="text-lg font-bold">+</span><span class="text-[9px]">إضافة</span></button>`;
+            : (item.status === true
+                ? `<button type="button" onclick="openPhotoActionsModal('${item.id}', 'design_photo_url', null)" class="flex flex-col items-center justify-center w-16 h-16 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-500 transition-all duration-200 mx-auto"><span class="text-lg font-bold">+</span><span class="text-[9px]">إضافة</span></button>`
+                : `<div class="flex flex-col items-center justify-center w-16 h-16 bg-gray-100 border border-gray-200 rounded-lg text-gray-300 mx-auto select-none"><span class="text-lg font-bold">-</span></div>`);
 
         const dielinePhotoCellUrl = itemPhotos.dieline_photo_url || null;
         const isDielinePhotoUploading = uploadingPhotosTracker[`${item.id}_dieline_photo_url`];
         const dielinePhotoCell = dielinePhotoCellUrl
             ? `<div class="relative w-16 h-16 mx-auto">
-                <button type="button" onclick="openPhotoActionsModal('${item.id}', 'dieline_photo_url', '${dielinePhotoCellUrl}')" class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition w-full h-full"><img src="${dielinePhotoCellUrl}" alt="Dieline Photo" class="w-full h-full object-cover ${isDielinePhotoUploading ? 'opacity-40 blur-[1px]' : ''}"></button>
+                <button type="button" ${item.status === true ? `onclick="openPhotoActionsModal('${item.id}', 'dieline_photo_url', '${dielinePhotoCellUrl}')"` : `onclick="openImageModal('${dielinePhotoCellUrl}')"`} class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition w-full h-full"><img src="${dielinePhotoCellUrl}" alt="Dieline Photo" class="w-full h-full object-cover ${isDielinePhotoUploading ? 'opacity-40 blur-[1px]' : ''}" loading="lazy"></button>
                 ${isDielinePhotoUploading ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><svg class="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>' : ''}
                </div>`
-            : `<button type="button" onclick="openPhotoActionsModal('${item.id}', 'dieline_photo_url', null)" class="flex flex-col items-center justify-center w-16 h-16 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-500 transition-all duration-200 mx-auto"><span class="text-lg font-bold">+</span><span class="text-[9px]">إضافة</span></button>`;
+            : (item.status === true
+                ? `<button type="button" onclick="openPhotoActionsModal('${item.id}', 'dieline_photo_url', null)" class="flex flex-col items-center justify-center w-16 h-16 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-500 transition-all duration-200 mx-auto"><span class="text-lg font-bold">+</span><span class="text-[9px]">إضافة</span></button>`
+                : `<div class="flex flex-col items-center justify-center w-16 h-16 bg-gray-100 border border-gray-200 rounded-lg text-gray-300 mx-auto select-none"><span class="text-lg font-bold">-</span></div>`);
 
         const itemNameDisplay = item.item_name || '-';
 
+        const rowClass = item.status === true
+            ? 'border-b hover:bg-blue-50 transition'
+            : 'border-b bg-gray-100 text-gray-400 transition opacity-80';
+
+        const editableAttr = item.status === true ? 'contenteditable="true"' : 'contenteditable="false"';
+        const editableClass = item.status === true
+            ? 'p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap'
+            : 'p-3 text-sm text-gray-400 border border-gray-200 text-left bg-gray-100 cursor-not-allowed whitespace-pre-wrap';
+
+        const productCell = item.status === true
+            ? `<td onclick="openProductSelectorModal('${item.id}')" class="p-3 text-sm text-blue-600 hover:text-blue-800 font-bold border border-gray-200 text-left cursor-pointer hover:bg-blue-50 transition-all duration-150 relative group select-none" dir="ltr">
+                <span class="border-b border-dashed border-blue-400 group-hover:border-blue-700">${productCustomId}</span>
+                <span class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-[9px] bg-blue-500 text-white rounded px-1 scale-90 transition-all">تغيير</span>
+               </td>`
+            : `<td class="p-3 text-sm text-gray-400 font-medium border border-gray-200 text-left select-none" dir="ltr">
+                <span>${productCustomId}</span>
+               </td>`;
+
         const row = document.createElement('tr');
-        row.className = 'border-b hover:bg-blue-50 transition';
+        row.className = rowClass;
+        row.id = `row-${item.id}`;
         row.innerHTML = `
-            <td class="p-3 text-sm text-gray-700 border border-gray-200 text-left select-none" dir="ltr">${itemNameDisplay}</td>
+            <td class="p-3 text-sm border border-gray-200 text-left select-none ${item.status === true ? 'text-gray-700' : 'text-gray-400 font-medium'}" dir="ltr">${itemNameDisplay}</td>
             <td class="p-3 text-sm text-gray-700 border border-gray-200 text-center">${clientPhotoCell}</td>
             <td class="p-3 text-sm text-gray-700 border border-gray-200 text-center">${designPhotoCell}</td>
             <td class="p-3 text-sm text-gray-700 border border-gray-200 text-center">${dielinePhotoCell}</td>
-            <td class="p-3 text-sm text-gray-700 border border-gray-200 text-center">-</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'size', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 140px;" dir="ltr">${item.size || ''}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'specifications', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 220px;" dir="ltr">${item.specifications || ''}</td>
-            <td onclick="openProductSelectorModal('${item.id}')" class="p-3 text-sm text-blue-600 hover:text-blue-800 font-bold border border-gray-200 text-left cursor-pointer hover:bg-blue-50 transition-all duration-150 relative group select-none" dir="ltr">
-                <span class="border-b border-dashed border-blue-400 group-hover:border-blue-700">${productCustomId}</span>
-                <span class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-[9px] bg-blue-500 text-white rounded px-1 scale-90 transition-all">تغيير</span>
-            </td>
-            <td class="p-3 text-sm text-gray-700 border border-gray-200 text-center">${productImage}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'sample', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 160px;" dir="ltr">${item.sample || ''}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'production', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 160px;" dir="ltr">${item.production || ''}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'quantity', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer font-semibold whitespace-pre-wrap" style="min-width: 100px;" dir="ltr">${item.quantity || 0}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'unit_type', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 100px;" dir="ltr">${item.unit_type || ''}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'factory_price_per_unit', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 120px;" dir="ltr">${item.factory_price_per_unit || 0}</td>
-            <td class="p-3 text-sm text-gray-700 border border-gray-200 text-left bg-blue-50" dir="ltr">${formatNumber(totalFactory)}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'shipping_price_per_unit', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer font-semibold whitespace-pre-wrap" style="min-width: 120px;" dir="ltr">${item.shipping_price_per_unit !== null && item.shipping_price_per_unit !== undefined ? item.shipping_price_per_unit : 0}</td>
-            <td class="p-3 text-sm text-gray-700 border border-gray-200 text-left bg-red-50" dir="ltr">${formatNumber(item.total_shipping_cost)}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'qty_per_ctn', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 120px;" dir="ltr">${item.qty_per_ctn || 0}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'CTN', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer bg-yellow-50 whitespace-pre-wrap" style="min-width: 100px;" dir="ltr">${item.CTN !== null && item.CTN !== undefined ? item.CTN : ''}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'gw_per_ctn_kg', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 120px;" dir="ltr">${item.gw_per_ctn_kg || 0}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'length_cm', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 90px;" dir="ltr">${item.length_cm || 0}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'width_cm', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 90px;" dir="ltr">${item.width_cm || 0}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'height_cm', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 90px;" dir="ltr">${item.height_cm || 0}</td>
-            <td class="p-3 text-sm text-gray-700 border border-gray-200 text-left" dir="ltr">${cbmPerCtn !== null ? formatNumber(cbmPerCtn) : '-'}</td>
-            <td class="p-3 text-sm text-gray-700 border border-gray-200 text-left bg-yellow-50" dir="ltr">${totalCbm !== '-' ? formatNumber(totalCbm) : '-'}</td>
-            <td contenteditable="true" onblur="updateInvoiceItemFieldInline('${item.id}', 'place', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap" style="min-width: 120px;" dir="ltr">${item.place || ''}</td>
-            <td class="p-3 text-sm border border-gray-200 text-center select-none" style="min-width: 110px;">${statusCell}</td>
+            <td class="p-3 text-sm border border-gray-200 text-center ${item.status === true ? 'text-gray-700' : 'text-gray-400'}">-</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'size', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 140px;" dir="ltr">${item.size || ''}</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'specifications', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 220px;" dir="ltr">${item.specifications || ''}</td>
+            ${productCell}
+            <td class="p-3 text-sm border border-gray-200 text-center select-none">${productImage}</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'sample', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 160px;" dir="ltr">${item.sample || ''}</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'production', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 160px;" dir="ltr">${item.production || ''}</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'quantity', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass} font-semibold" style="min-width: 100px;" dir="ltr">${item.quantity || 0}</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'unit_type', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 100px;" dir="ltr">${item.unit_type || ''}</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'factory_price_per_unit', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 120px;" dir="ltr">${item.factory_price_per_unit || 0}</td>
+            <td id="cell-total-factory-${item.id}" class="p-3 text-sm border border-gray-200 text-left bg-blue-50 ${item.status === true ? 'text-gray-700' : 'text-gray-400 font-medium'}" dir="ltr">${formatNumber(totalFactory)}</td>
+            <td id="cell-shipping-unit-${item.id}" ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'shipping_price_per_unit', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass} font-semibold" style="min-width: 120px;" dir="ltr">${item.shipping_price_per_unit !== null && item.shipping_price_per_unit !== undefined ? item.shipping_price_per_unit : 0}</td>
+            <td id="cell-total-shipping-${item.id}" class="p-3 text-sm border border-gray-200 text-left bg-red-50 ${item.status === true ? 'text-gray-700' : 'text-gray-400 font-medium'}" dir="ltr">${formatNumber(item.total_shipping_cost)}</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'qty_per_ctn', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 120px;" dir="ltr">${item.qty_per_ctn || 0}</td>
+            <td id="cell-ctn-${item.id}" ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'CTN', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass} bg-yellow-50" style="min-width: 100px;" dir="ltr">${item.CTN !== null && item.CTN !== undefined ? item.CTN : ''}</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'gw_per_ctn_kg', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 120px;" dir="ltr">${item.gw_per_ctn_kg || 0}</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'length_cm', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 90px;" dir="ltr">${item.length_cm || 0}</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'width_cm', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 90px;" dir="ltr">${item.width_cm || 0}</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'height_cm', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 90px;" dir="ltr">${item.height_cm || 0}</td>
+            <td id="cell-cbm-per-ctn-${item.id}" class="p-3 text-sm border border-gray-200 text-left ${item.status === true ? 'text-gray-700' : 'text-gray-400 font-medium'}" dir="ltr">${cbmPerCtn !== null ? formatNumber(cbmPerCtn) : '-'}</td>
+            <td id="cell-total-cbm-${item.id}" class="p-3 text-sm border border-gray-200 text-left bg-yellow-50 ${item.status === true ? 'text-gray-700' : 'text-gray-400 font-medium'}" dir="ltr">${totalCbm !== '-' ? formatNumber(totalCbm) : '-'}</td>
+            <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'place', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 120px;" dir="ltr">${item.place || ''}</td>
+            <td id="cell-status-${item.id}" class="p-3 text-sm border border-gray-200 text-center select-none" style="min-width: 110px;">${statusCell}</td>
             <td class="p-3 text-center border border-gray-200 whitespace-nowrap select-none">
                 <button onclick="deleteInvoiceItem('${item.id}')" class="bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm hover:shadow active:scale-95 transition-all text-xs">حذف</button>
             </td>
         `;
-        tbody.appendChild(row);
+        fragment.appendChild(row);
     });
 
-    // إضافة صف المجموع النهائي
     const totalRow = document.createElement('tr');
+    totalRow.id = 'invoiceItemsTotalRow';
     totalRow.className = 'bg-gray-100 font-bold border-t-2 border-double border-gray-400';
-    totalRow.innerHTML = `
-        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="11">المجموع الإجمالي / Totals</td>
-        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-blue-50">${formatNumber(totalMOQ)}</td>
-        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="2">-</td>
-        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-blue-100">${formatNumber(totalAmountVal)}</td>
-        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center">-</td>
-        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-red-100">${formatNumber(totalShippingVal)}</td>
-        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center">-</td>
-        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-yellow-100">${formatNumber(totalCtnVal)}</td>
-        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="5">-</td>
-        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-yellow-100">${totalCbmVal > 0 ? totalCbmVal.toFixed(4) : '-'}</td>
-        <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="3">-</td>
-    `;
-    tbody.appendChild(totalRow);
+    fragment.appendChild(totalRow);
 
-    // تحديث قيم بطاقات الإحصائيات في الصفحة
+    tbody.innerHTML = '';
+    tbody.appendChild(fragment);
+
+    updateInvoiceItemsFooter();
+}
+
+function updateInvoiceItemsFooter() {
+    let totalMOQ = 0, totalAmountVal = 0, totalShippingVal = 0, totalCtnVal = 0, totalCbmVal = 0;
+    const itemsToRender = showOnlyActive ? invoiceItems.filter(item => item.status === true) : invoiceItems;
+
+    itemsToRender.forEach(item => {
+        const totalFactory = (item.quantity || 0) * (item.factory_price_per_unit || 0);
+
+        const cbmPerCtn = item.length_cm && item.width_cm && item.height_cm
+            ? ((Number(item.length_cm) / 100) * (Number(item.width_cm) / 100) * (Number(item.height_cm) / 100)).toFixed(4)
+            : null;
+
+        const ctnValue = item.CTN !== null && item.CTN !== undefined
+            ? item.CTN
+            : ((item.quantity && item.qty_per_ctn) ? Math.ceil(item.quantity / item.qty_per_ctn) : null);
+
+        const totalCbm = item.total_cbm !== null && item.total_cbm !== undefined
+            ? item.total_cbm
+            : ((cbmPerCtn !== null && ctnValue !== null) ? (Number(cbmPerCtn) * Number(ctnValue)).toFixed(4) : '-');
+
+        totalMOQ += Number(item.quantity || 0);
+        totalAmountVal += totalFactory;
+        totalShippingVal += Number(item.total_shipping_cost || 0);
+        totalCtnVal += Number(ctnValue || 0);
+        if (totalCbm !== '-' && totalCbm !== null) {
+            totalCbmVal += Number(totalCbm);
+        }
+    });
+
+    const totalRow = document.getElementById('invoiceItemsTotalRow');
+    if (totalRow) {
+        totalRow.innerHTML = `
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="11">المجموع الإجمالي / Totals</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-blue-50">${formatNumber(totalMOQ)}</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="2">-</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-blue-100">${formatNumber(totalAmountVal)}</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center">-</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-red-100">${formatNumber(totalShippingVal)}</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center">-</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-yellow-100">${formatNumber(totalCtnVal)}</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="5">-</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-yellow-100">${totalCbmVal > 0 ? totalCbmVal.toFixed(4) : '-'}</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="3">-</td>
+        `;
+    }
+
     const statQty = document.getElementById('statTotalQuantity');
     if (statQty) statQty.textContent = totalMOQ.toLocaleString('en-US');
 
@@ -391,18 +442,208 @@ function renderInvoiceItemsTable() {
     if (statFactory) statFactory.textContent = '$' + totalAmountVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function updateInvoiceItemRowTargeted(itemId) {
+    const item = invoiceItems.find(i => i.id === itemId);
+    if (!item) return;
+
+    const totalFactory = (item.quantity || 0) * (item.factory_price_per_unit || 0);
+
+    const cbmPerCtn = item.length_cm && item.width_cm && item.height_cm
+        ? ((Number(item.length_cm) / 100) * (Number(item.width_cm) / 100) * (Number(item.height_cm) / 100)).toFixed(4)
+        : null;
+
+    const ctnValue = item.CTN !== null && item.CTN !== undefined
+        ? item.CTN
+        : ((item.quantity && item.qty_per_ctn) ? Math.ceil(item.quantity / item.qty_per_ctn) : null);
+
+    const totalCbm = item.total_cbm !== null && item.total_cbm !== undefined
+        ? item.total_cbm
+        : ((cbmPerCtn !== null && ctnValue !== null) ? (Number(cbmPerCtn) * Number(ctnValue)).toFixed(4) : '-');
+
+    const cellTotalFactory = document.getElementById(`cell-total-factory-${itemId}`);
+    if (cellTotalFactory) cellTotalFactory.textContent = formatNumber(totalFactory);
+
+    const cellShippingUnit = document.getElementById(`cell-shipping-unit-${itemId}`);
+    if (cellShippingUnit && document.activeElement !== cellShippingUnit) {
+        cellShippingUnit.textContent = item.shipping_price_per_unit !== null && item.shipping_price_per_unit !== undefined ? item.shipping_price_per_unit : 0;
+    }
+
+    const cellTotalShipping = document.getElementById(`cell-total-shipping-${itemId}`);
+    if (cellTotalShipping) cellTotalShipping.textContent = formatNumber(item.total_shipping_cost);
+
+    const cellCtn = document.getElementById(`cell-ctn-${itemId}`);
+    if (cellCtn && document.activeElement !== cellCtn) {
+        cellCtn.textContent = item.CTN !== null && item.CTN !== undefined ? item.CTN : '';
+    }
+
+    const cellCbmPerCtn = document.getElementById(`cell-cbm-per-ctn-${itemId}`);
+    if (cellCbmPerCtn) cellCbmPerCtn.textContent = cbmPerCtn !== null ? formatNumber(cbmPerCtn) : '-';
+
+    const cellTotalCbm = document.getElementById(`cell-total-cbm-${itemId}`);
+    if (cellTotalCbm) cellTotalCbm.textContent = totalCbm !== '-' ? formatNumber(totalCbm) : '-';
+
+    const cellStatus = document.getElementById(`cell-status-${item.id}`);
+    if (cellStatus) {
+        cellStatus.innerHTML = item.status === true
+            ? `<button type="button" onclick="toggleInvoiceItemStatus('${item.id}', true)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 hover:text-green-800 transition shadow-sm active:scale-95 select-none mx-auto"><span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>نشط</button>`
+            : `<button type="button" onclick="toggleInvoiceItemStatus('${item.id}', false)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-700 transition shadow-sm active:scale-95 select-none mx-auto"><span class="w-2 h-2 rounded-full bg-gray-400"></span>غير نشط</button>`;
+    }
+}
+
+function rebuildInvoiceItemRow(itemId) {
+    const item = invoiceItems.find(i => i.id === itemId);
+    const row = document.getElementById(`row-${itemId}`);
+    if (!item || !row) return;
+
+    const product = getProductById(item.product_id);
+    const productCustomId = product ? product.product_custom_id || '-' : '-';
+    const productImage = product && product.product_image_url ? `<button type="button" onclick='openProductDetailsModal("${product.id}")' class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition"><img src="${product.product_image_url}" alt="Factory Image" class="w-16 h-16 object-cover" loading="lazy"></button>` : '-';
+
+    const totalFactory = (item.quantity || 0) * (item.factory_price_per_unit || 0);
+
+    const cbmPerCtn = item.length_cm && item.width_cm && item.height_cm
+        ? ((Number(item.length_cm) / 100) * (Number(item.width_cm) / 100) * (Number(item.height_cm) / 100)).toFixed(4)
+        : null;
+
+    const ctnValue = item.CTN !== null && item.CTN !== undefined
+        ? item.CTN
+        : ((item.quantity && item.qty_per_ctn) ? Math.ceil(item.quantity / item.qty_per_ctn) : null);
+
+    const totalCbm = item.total_cbm !== null && item.total_cbm !== undefined
+        ? item.total_cbm
+        : ((cbmPerCtn !== null && ctnValue !== null) ? (Number(cbmPerCtn) * Number(ctnValue)).toFixed(4) : '-');
+
+    const itemPhotos = itemPhotosLookup[item.id] || {};
+
+    const statusCell = item.status === true
+        ? `<button type="button" onclick="toggleInvoiceItemStatus('${item.id}', true)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 hover:text-green-800 transition shadow-sm active:scale-95 select-none mx-auto"><span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>نشط</button>`
+        : `<button type="button" onclick="toggleInvoiceItemStatus('${item.id}', false)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-700 transition shadow-sm active:scale-95 select-none mx-auto"><span class="w-2 h-2 rounded-full bg-gray-400"></span>غير نشط</button>`;
+
+    const clientPhotoCellUrl = itemPhotos.client_photo_url || null;
+    const isClientPhotoUploading = uploadingPhotosTracker[`${item.id}_client_photo_url`];
+    const clientPhotoCell = clientPhotoCellUrl
+        ? `<div class="relative w-16 h-16 mx-auto">
+            <button type="button" ${item.status === true ? `onclick="openPhotoActionsModal('${item.id}', 'client_photo_url', '${clientPhotoCellUrl}')"` : `onclick="openImageModal('${clientPhotoCellUrl}')"`} class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition w-full h-full"><img src="${clientPhotoCellUrl}" alt="Client Photo" class="w-full h-full object-cover ${isClientPhotoUploading ? 'opacity-40 blur-[1px]' : ''}" loading="lazy"></button>
+            ${isClientPhotoUploading ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><svg class="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>' : ''}
+           </div>`
+        : (item.status === true
+            ? `<button type="button" onclick="openPhotoActionsModal('${item.id}', 'client_photo_url', null)" class="flex flex-col items-center justify-center w-16 h-16 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-500 transition-all duration-200 mx-auto"><span class="text-lg font-bold">+</span><span class="text-[9px]">إضافة</span></button>`
+            : `<div class="flex flex-col items-center justify-center w-16 h-16 bg-gray-100 border border-gray-200 rounded-lg text-gray-300 mx-auto select-none"><span class="text-lg font-bold">-</span></div>`);
+
+    const designPhotoCellUrl = itemPhotos.design_photo_url || null;
+    const isDesignPhotoUploading = uploadingPhotosTracker[`${item.id}_design_photo_url`];
+    const designPhotoCell = designPhotoCellUrl
+        ? `<div class="relative w-16 h-16 mx-auto">
+            <button type="button" ${item.status === true ? `onclick="openPhotoActionsModal('${item.id}', 'design_photo_url', '${designPhotoCellUrl}')"` : `onclick="openImageModal('${designPhotoCellUrl}')"`} class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition w-full h-full"><img src="${designPhotoCellUrl}" alt="Design Photo" class="w-full h-full object-cover ${isDesignPhotoUploading ? 'opacity-40 blur-[1px]' : ''}" loading="lazy"></button>
+            ${isDesignPhotoUploading ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><svg class="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>' : ''}
+           </div>`
+        : (item.status === true
+            ? `<button type="button" onclick="openPhotoActionsModal('${item.id}', 'design_photo_url', null)" class="flex flex-col items-center justify-center w-16 h-16 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-500 transition-all duration-200 mx-auto"><span class="text-lg font-bold">+</span><span class="text-[9px]">إضافة</span></button>`
+            : `<div class="flex flex-col items-center justify-center w-16 h-16 bg-gray-100 border border-gray-200 rounded-lg text-gray-300 mx-auto select-none"><span class="text-lg font-bold">-</span></div>`);
+
+    const dielinePhotoCellUrl = itemPhotos.dieline_photo_url || null;
+    const isDielinePhotoUploading = uploadingPhotosTracker[`${item.id}_dieline_photo_url`];
+    const dielinePhotoCell = dielinePhotoCellUrl
+        ? `<div class="relative w-16 h-16 mx-auto">
+            <button type="button" ${item.status === true ? `onclick="openPhotoActionsModal('${item.id}', 'dieline_photo_url', '${dielinePhotoCellUrl}')"` : `onclick="openImageModal('${dielinePhotoCellUrl}')"`} class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition w-full h-full"><img src="${dielinePhotoCellUrl}" alt="Dieline Photo" class="w-full h-full object-cover ${isDielinePhotoUploading ? 'opacity-40 blur-[1px]' : ''}" loading="lazy"></button>
+            ${isDielinePhotoUploading ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><svg class="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>' : ''}
+           </div>`
+        : (item.status === true
+            ? `<button type="button" onclick="openPhotoActionsModal('${item.id}', 'dieline_photo_url', null)" class="flex flex-col items-center justify-center w-16 h-16 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-500 transition-all duration-200 mx-auto"><span class="text-lg font-bold">+</span><span class="text-[9px]">إضافة</span></button>`
+            : `<div class="flex flex-col items-center justify-center w-16 h-16 bg-gray-100 border border-gray-200 rounded-lg text-gray-300 mx-auto select-none"><span class="text-lg font-bold">-</span></div>`);
+
+    const itemNameDisplay = item.item_name || '-';
+
+    const rowClass = item.status === true
+        ? 'border-b hover:bg-blue-50 transition'
+        : 'border-b bg-gray-100 text-gray-400 transition opacity-80';
+
+    const editableAttr = item.status === true ? 'contenteditable="true"' : 'contenteditable="false"';
+    const editableClass = item.status === true
+        ? 'p-3 text-sm text-gray-700 border border-gray-200 text-left hover:bg-yellow-50 focus:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:shadow-inner transition-all duration-150 cursor-pointer whitespace-pre-wrap'
+        : 'p-3 text-sm text-gray-400 border border-gray-200 text-left bg-gray-100 cursor-not-allowed whitespace-pre-wrap';
+
+    const productCell = item.status === true
+        ? `<td onclick="openProductSelectorModal('${item.id}')" class="p-3 text-sm text-blue-600 hover:text-blue-800 font-bold border border-gray-200 text-left cursor-pointer hover:bg-blue-50 transition-all duration-150 relative group select-none" dir="ltr">
+            <span class="border-b border-dashed border-blue-400 group-hover:border-blue-700">${productCustomId}</span>
+            <span class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-[9px] bg-blue-500 text-white rounded px-1 scale-90 transition-all">تغيير</span>
+           </td>`
+        : `<td class="p-3 text-sm text-gray-400 font-medium border border-gray-200 text-left select-none" dir="ltr">
+            <span>${productCustomId}</span>
+           </td>`;
+
+    row.className = rowClass;
+    row.innerHTML = `
+        <td class="p-3 text-sm border border-gray-200 text-left select-none ${item.status === true ? 'text-gray-700' : 'text-gray-400 font-medium'}" dir="ltr">${itemNameDisplay}</td>
+        <td class="p-3 text-sm text-gray-700 border border-gray-200 text-center">${clientPhotoCell}</td>
+        <td class="p-3 text-sm text-gray-700 border border-gray-200 text-center">${designPhotoCell}</td>
+        <td class="p-3 text-sm text-gray-700 border border-gray-200 text-center">${dielinePhotoCell}</td>
+        <td class="p-3 text-sm border border-gray-200 text-center ${item.status === true ? 'text-gray-700' : 'text-gray-400'}">-</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'size', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 140px;" dir="ltr">${item.size || ''}</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'specifications', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 220px;" dir="ltr">${item.specifications || ''}</td>
+        ${productCell}
+        <td class="p-3 text-sm border border-gray-200 text-center select-none">${productImage}</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'sample', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 160px;" dir="ltr">${item.sample || ''}</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'production', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 160px;" dir="ltr">${item.production || ''}</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'quantity', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass} font-semibold" style="min-width: 100px;" dir="ltr">${item.quantity || 0}</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'unit_type', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 100px;" dir="ltr">${item.unit_type || ''}</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'factory_price_per_unit', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 120px;" dir="ltr">${item.factory_price_per_unit || 0}</td>
+        <td id="cell-total-factory-${item.id}" class="p-3 text-sm border border-gray-200 text-left bg-blue-50 ${item.status === true ? 'text-gray-700' : 'text-gray-400 font-medium'}" dir="ltr">${formatNumber(totalFactory)}</td>
+        <td id="cell-shipping-unit-${item.id}" ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'shipping_price_per_unit', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass} font-semibold" style="min-width: 120px;" dir="ltr">${item.shipping_price_per_unit !== null && item.shipping_price_per_unit !== undefined ? item.shipping_price_per_unit : 0}</td>
+        <td id="cell-total-shipping-${item.id}" class="p-3 text-sm border border-gray-200 text-left bg-red-50 ${item.status === true ? 'text-gray-700' : 'text-gray-400 font-medium'}" dir="ltr">${formatNumber(item.total_shipping_cost)}</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'qty_per_ctn', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 120px;" dir="ltr">${item.qty_per_ctn || 0}</td>
+        <td id="cell-ctn-${item.id}" ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'CTN', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass} bg-yellow-50" style="min-width: 100px;" dir="ltr">${item.CTN !== null && item.CTN !== undefined ? item.CTN : ''}</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'gw_per_ctn_kg', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 120px;" dir="ltr">${item.gw_per_ctn_kg || 0}</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'length_cm', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 90px;" dir="ltr">${item.length_cm || 0}</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'width_cm', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 90px;" dir="ltr">${item.width_cm || 0}</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'height_cm', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 90px;" dir="ltr">${item.height_cm || 0}</td>
+        <td id="cell-cbm-per-ctn-${item.id}" class="p-3 text-sm border border-gray-200 text-left ${item.status === true ? 'text-gray-700' : 'text-gray-400 font-medium'}" dir="ltr">${cbmPerCtn !== null ? formatNumber(cbmPerCtn) : '-'}</td>
+        <td id="cell-total-cbm-${item.id}" class="p-3 text-sm border border-gray-200 text-left bg-yellow-50 ${item.status === true ? 'text-gray-700' : 'text-gray-400 font-medium'}" dir="ltr">${totalCbm !== '-' ? formatNumber(totalCbm) : '-'}</td>
+        <td ${editableAttr} onfocus="handleEditableCellFocus(this)" onblur="updateInvoiceItemFieldInline('${item.id}', 'place', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="${editableClass}" style="min-width: 120px;" dir="ltr">${item.place || ''}</td>
+        <td id="cell-status-${item.id}" class="p-3 text-sm border border-gray-200 text-center select-none" style="min-width: 110px;">${statusCell}</td>
+        <td class="p-3 text-center border border-gray-200 whitespace-nowrap select-none">
+            <button onclick="deleteInvoiceItem('${item.id}')" class="bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm hover:shadow active:scale-95 transition-all text-xs">حذف</button>
+        </td>
+    `;
+}
+
 // تحميل المنتجات
 async function loadProductsLookup() {
-    const { data, error } = await _supabase.from('products').select('*').order('product_custom_id', { ascending: true });
+    // محاولة جلب المنتجات من الذاكرة المؤقتة (sessionStorage) لتسريع التحميل في 0 مللي ثانية
+    const cachedProducts = sessionStorage.getItem('products_lookup_cache');
+    if (cachedProducts) {
+        try {
+            productsLookup = JSON.parse(cachedProducts);
+            renderProductOptions();
+            return;
+        } catch (e) {
+            console.error('خطأ في قراءة كاش المنتجات المرفق:', e);
+        }
+    }
+
+    const { data, error } = await _supabase.from('products')
+        .select('id, product_custom_id, product_name, product_image_url, specifications, moq_of_product, days_of_manufacturing')
+        .order('product_custom_id', { ascending: true });
     if (error) { console.error(error.message); return; }
     productsLookup = data || [];
+
+    try {
+        sessionStorage.setItem('products_lookup_cache', JSON.stringify(productsLookup));
+    } catch (e) {
+        console.error('فشل حفظ كاش المنتجات:', e);
+    }
+
     renderProductOptions();
 }
 
 // تحميل تفاصيل الفاتورة
+// تحميل تفاصيل الفاتورة
 async function loadInvoiceDetails() {
-    const { data: invoiceData, error: invoiceError } = await _supabase.from('invoices').select('*, customers(customer_custom_id, full_name),shipping_rates(country_code, price_per_cbm)').eq('id', currentInvoiceId).single();
-    if (invoiceError) { alert('خطأ في جلب الفاتورة'); return; }
+    const { data: invoiceData, error: invoiceError } = await _supabase.from('invoices')
+        .select('invoice_number, Price_Per_CBM, customers(customer_custom_id, full_name), shipping_rates(country_code, price_per_cbm)')
+        .eq('id', currentInvoiceId)
+        .single();
+    if (invoiceError) { showToast('حدث خطأ أثناء جلب تفاصيل الفاتورة!', 'error'); return; }
 
     currentCustomerName = invoiceData.customers?.full_name || '-';
     currentShippingRatePerCbm = invoiceData.Price_Per_CBM || 0;
@@ -431,15 +672,39 @@ async function loadInvoiceDetails() {
 
 // تحميل عناصر الفاتورة
 async function loadInvoiceItems() {
+    // جلب البنود وصورها المترابطة في طلب شبكة واحد مدمج (Supabase Join Query)
     const { data, error } = await _supabase.from('invoice_items')
-        .select('*')
+        .select('*, item_photos(*)')
         .eq('invoice_id', currentInvoiceId)
         .order('created_at', { ascending: true });
     if (error) { console.error(error.message); return; }
-    invoiceItems = data || [];
 
-    const itemIds = invoiceItems.map(item => item.id).filter(Boolean);
-    await loadItemPhotosForInvoiceItems(itemIds);
+    const rawItems = data || [];
+
+    // استخراج وتوزيع الصور محلياً في الذاكرة لتكون جاهزة للرسم الفوري دون أي استعلام منفصل
+    itemPhotosLookup = {};
+    rawItems.forEach(item => {
+        if (item.item_photos) {
+            const photos = Array.isArray(item.item_photos) ? item.item_photos[0] : item.item_photos;
+            if (photos) {
+                itemPhotosLookup[item.id] = photos;
+            }
+        }
+    });
+
+    if (sortActiveFirst) {
+        const sortedData = [...rawItems].sort((a, b) => {
+            const aActive = a.status === true;
+            const bActive = b.status === true;
+            if (aActive && !bActive) return -1;
+            if (!aActive && bActive) return 1;
+
+            return new Date(a.created_at) - new Date(b.created_at);
+        });
+        invoiceItems = sortedData;
+    } else {
+        invoiceItems = rawItems;
+    }
 
     renderInvoiceItemsTable();
     updateItemNameField();
@@ -449,69 +714,64 @@ async function loadInvoiceItems() {
 async function addInvoiceItem(event) {
     event.preventDefault();
     if (!currentInvoiceId) return;
-    const submitBtn = document.getElementById('saveInvoiceItemButton');
+    const submitBtn = document.getElementById("saveInvoiceItemButton");
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        submitBtn.innerText = 'جاري الحفظ...';
+        submitBtn.classList.add("opacity-50", "cursor-not-allowed");
+        submitBtn.innerText = "جاري الحفظ...";
     }
-    // تجميع البيانات من النموذج
     const payload = {
         invoice_id: currentInvoiceId,
-        product_id: document.getElementById('invoiceItemProductId').value || null,
+        product_id: document.getElementById("invoiceItemProductId").value || null,
         item_name: getNextItemName(),
-        size: document.getElementById('itemSize').value,
-        specifications: document.getElementById('itemSpecifications').value,
-        quantity: parseFloat(document.getElementById('itemQuantity').value) || 0,
-        unit_type: document.getElementById('itemUnitType').value || null,
-        factory_price_per_unit: parseFloat(document.getElementById('itemFactoryPricePerUnit').value) || 0,
-        qty_per_ctn: parseInt(document.getElementById('itemQtyPerCtn').value) || 0,
-        gw_per_ctn_kg: parseFloat(document.getElementById('itemGwPerCtnKg').value) || 0,
-        length_cm: parseFloat(document.getElementById('itemLengthCm').value) || 0,
-        width_cm: parseFloat(document.getElementById('itemWidthCm').value) || 0,
-        height_cm: parseFloat(document.getElementById('itemHeightCm').value) || 0,
-        sample: document.getElementById('itemSample').value || '',
-        production: document.getElementById('itemProduction').value || '',
-        "CTN": document.getElementById('itemCtn').value ? parseInt(document.getElementById('itemCtn').value) : null,
-        place: document.getElementById('itemPlace').value || 1
+        size: document.getElementById("itemSize").value,
+        specifications: document.getElementById("itemSpecifications").value,
+        quantity: parseFloat(document.getElementById("itemQuantity").value) || 0,
+        unit_type: document.getElementById("itemUnitType").value || null,
+        factory_price_per_unit: parseFloat(document.getElementById("itemFactoryPricePerUnit").value) || 0,
+        qty_per_ctn: parseInt(document.getElementById("itemQtyPerCtn").value) || 0,
+        gw_per_ctn_kg: parseFloat(document.getElementById("itemGwPerCtnKg").value) || 0,
+        length_cm: parseFloat(document.getElementById("itemLengthCm").value) || 0,
+        width_cm: parseFloat(document.getElementById("itemWidthCm").value) || 0,
+        height_cm: parseFloat(document.getElementById("itemHeightCm").value) || 0,
+        sample: document.getElementById("itemSample").value || "",
+        production: document.getElementById("itemProduction").value || "",
+        CTN: document.getElementById("itemCtn").value ? parseInt(document.getElementById("itemCtn").value) : null,
+        place: document.getElementById("itemPlace").value || 1
     };
-
-    const clientPhotoFile = document.getElementById('itemClientPhoto').files[0];
-    const designPhotoFile = document.getElementById('itemDesignPhoto').files[0];
-    const dielinePhotoFile = document.getElementById('itemDielinePhoto').files[0];
-
     try {
-        const { data, error } = await _supabase.from('invoice_items').insert([payload]).select('id').single();
+        const { data, error } = await _supabase.from("invoice_items").insert([payload]).select("*").single();
         if (error) throw error;
-
-        const itemId = data?.id;
-        if (itemId) {
+        const newItem = data;
+        const itemId = newItem.id;
+        const clientPhotoFile = document.getElementById("itemClientPhoto").files[0];
+        const designPhotoFile = document.getElementById("itemDesignPhoto").files[0];
+        const dielinePhotoFile = document.getElementById("itemDielinePhoto").files[0];
+        let photosObj = { client_photo_url: null, design_photo_url: null, dieline_photo_url: null };
+        if (clientPhotoFile || designPhotoFile || dielinePhotoFile) {
             const clientPhotoUrl = clientPhotoFile ? await uploadInvoiceItemImageFile(clientPhotoFile) : null;
             const designPhotoUrl = designPhotoFile ? await uploadInvoiceItemImageFile(designPhotoFile) : null;
             const dielinePhotoUrl = dielinePhotoFile ? await uploadInvoiceItemImageFile(dielinePhotoFile) : null;
-
-            if (clientPhotoUrl || designPhotoUrl || dielinePhotoUrl) {
-                const { error: photosError } = await _supabase.from('item_photos').insert([{
-                    item_id: itemId,
-                    client_photo_url: clientPhotoUrl,
-                    design_photo_url: designPhotoUrl,
-                    dieline_photo_url: dielinePhotoUrl
-                }]);
-                if (photosError) throw photosError;
-            }
+            photosObj = { client_photo_url: clientPhotoUrl, design_photo_url: designPhotoUrl, dieline_photo_url: dielinePhotoUrl };
+            const { data: pData, error: pErr } = await _supabase.from("item_photos").insert([{ item_id: itemId, ...photosObj }]).select("*").single();
+            if (pErr) throw pErr;
+            if (pData) photosObj = pData;
         }
-
-        alert('تم حفظ العنصر والصور بنجاح');
-        document.getElementById('invoiceItemForm').reset();
-        document.getElementById('productPreview').classList.add('hidden');
-        await loadInvoiceItems(); // تحديث الجدول
+        itemPhotosLookup[itemId] = photosObj;
+        invoiceItems.push(newItem);
+        recalculateLocalItemFields(newItem, false);
+        renderInvoiceItemsTable();
+        updateInvoiceItemsFooter();
+        showToast("تم حفظ العنصر والصور بنجاح 🎉", "success");
+        document.getElementById("invoiceItemForm").reset();
+        document.getElementById("productPreview").classList.add("hidden");
     } catch (err) {
-        alert('خطأ: ' + err.message);
+        showToast("حدث خطأ: " + err.message, "error");
     }
     if (submitBtn) {
-        submitBtn.disabled = false; // إعادة تفعيل الزر
-        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed'); // إرجاع الشكل الطبيعي
-        submitBtn.innerText = 'حفظ المنتج'; // إرجاع النص الأصلي
+        submitBtn.disabled = false;
+        submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
+        submitBtn.innerText = "حفظ المنتج";
     }
 }
 
@@ -569,41 +829,41 @@ function editInvoiceItem(itemId) {
 // حفظ التعديلات
 async function updateInvoiceItem(event) {
     event.preventDefault();
-    const submitBtn = document.getElementById('updateInvoiceItemButton');
+    const submitBtn = document.getElementById("updateInvoiceItemButton");
 
     try {
-        const itemId = document.getElementById('editInvoiceItemId').value;
-        if (!itemId) { alert('معرف العنصر غير موجود'); return; }
+        const itemId = document.getElementById("editInvoiceItemId").value;
+        if (!itemId) { showToast("معرف العنصر غير موجود", "error"); return; }
 
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            submitBtn.innerText = 'جاري الحفظ...';
+            submitBtn.classList.add("opacity-75", "cursor-not-allowed");
+            submitBtn.innerHTML = "<svg class='animate-spin h-5 w-5 text-white inline-block ml-2' fill='none' viewBox='0 0 24 24'><circle class='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' stroke-width='4'></circle><path class='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'></path></svg> جاري الحفظ...";
         }
 
         const payload = {
-            size: (document.getElementById('editItemSize') || {}).value || '',
-            specifications: (document.getElementById('editItemSpecifications') || {}).value || '',
-            quantity: parseFloat((document.getElementById('editItemQuantity') || {}).value) || 0,
-            unit_type: (document.getElementById('editItemUnitType') || {}).value || null,
-            factory_price_per_unit: parseFloat((document.getElementById('editItemFactoryPricePerUnit') || {}).value) || 0,
-            qty_per_ctn: parseInt((document.getElementById('editItemQtyPerCtn') || {}).value) || 0,
-            gw_per_ctn_kg: parseFloat((document.getElementById('editItemGwPerCtnKg') || {}).value) || 0,
-            length_cm: parseFloat((document.getElementById('editItemLengthCm') || {}).value) || 0,
-            width_cm: parseFloat((document.getElementById('editItemWidthCm') || {}).value) || 0,
-            height_cm: parseFloat((document.getElementById('editItemHeightCm') || {}).value) || 0,
-            sample: (document.getElementById('editItemSample') || {}).value || '',
-            production: (document.getElementById('editItemProduction') || {}).value || '',
-            "CTN": (document.getElementById('editItemCtn') || {}).value ? parseInt((document.getElementById('editItemCtn') || {}).value) : null,
-            place: (document.getElementById('editItemPlace') || {}).value || ''
+            size: (document.getElementById("editItemSize") || {}).value || "",
+            specifications: (document.getElementById("editItemSpecifications") || {}).value || "",
+            quantity: parseFloat((document.getElementById("editItemQuantity") || {}).value) || 0,
+            unit_type: (document.getElementById("editItemUnitType") || {}).value || null,
+            factory_price_per_unit: parseFloat((document.getElementById("editItemFactoryPricePerUnit") || {}).value) || 0,
+            qty_per_ctn: parseInt((document.getElementById("editItemQtyPerCtn") || {}).value) || 0,
+            gw_per_ctn_kg: parseFloat((document.getElementById("editItemGwPerCtnKg") || {}).value) || 0,
+            length_cm: parseFloat((document.getElementById("editItemLengthCm") || {}).value) || 0,
+            width_cm: parseFloat((document.getElementById("editItemWidthCm") || {}).value) || 0,
+            height_cm: parseFloat((document.getElementById("editItemHeightCm") || {}).value) || 0,
+            sample: (document.getElementById("editItemSample") || {}).value || "",
+            production: (document.getElementById("editItemProduction") || {}).value || "",
+            CTN: (document.getElementById("editItemCtn") || {}).value ? parseInt((document.getElementById("editItemCtn") || {}).value) : null,
+            place: (document.getElementById("editItemPlace") || {}).value || ""
         };
 
-        const { error } = await _supabase.from('invoice_items').update(payload).eq('id', itemId);
+        const { error } = await _supabase.from("invoice_items").update(payload).eq("id", itemId);
         if (error) throw error;
 
-        const clientPhotoFile = (document.getElementById('editItemClientPhoto') || {}).files?.[0];
-        const designPhotoFile = (document.getElementById('editItemDesignPhoto') || {}).files?.[0];
-        const dielinePhotoFile = (document.getElementById('editItemDielinePhoto') || {}).files?.[0];
+        const clientPhotoFile = (document.getElementById("editItemClientPhoto") || {}).files?.[0];
+        const designPhotoFile = (document.getElementById("editItemDesignPhoto") || {}).files?.[0];
+        const dielinePhotoFile = (document.getElementById("editItemDielinePhoto") || {}).files?.[0];
 
         if (clientPhotoFile || designPhotoFile || dielinePhotoFile) {
             const existingPhotos = itemPhotosLookup[itemId] || {};
@@ -622,26 +882,40 @@ async function updateInvoiceItem(event) {
                 : (existingPhotos.dieline_photo_url || null);
 
             if (existingPhotos.id) {
-                const { error: photosError } = await _supabase.from('item_photos').update(photosPayload).eq('id', existingPhotos.id);
+                const { data: updatedPhoto, error: photosError } = await _supabase.from("item_photos").update(photosPayload).eq("id", existingPhotos.id).select("*").single();
                 if (photosError) throw photosError;
+                if (updatedPhoto) {
+                    itemPhotosLookup[itemId] = updatedPhoto;
+                }
             } else {
-                const { error: photosError } = await _supabase.from('item_photos').insert([photosPayload]);
+                const { data: insertedPhoto, error: photosError } = await _supabase.from("item_photos").insert([photosPayload]).select("*").single();
                 if (photosError) throw photosError;
+                if (insertedPhoto) {
+                    itemPhotosLookup[itemId] = insertedPhoto;
+                }
             }
         }
 
-        alert('تم تحديث العنصر بنجاح');
+        // تحديث البيانات محلياً في مصفوفة الذاكرة
+        const item = invoiceItems.find(i => i.id === itemId);
+        if (item) {
+            Object.assign(item, payload);
+            recalculateLocalItemFields(item, false);
+            rebuildInvoiceItemRow(itemId);
+            updateInvoiceItemsFooter();
+        }
+
+        showToast("تم تحديث العنصر بنجاح 🎉", "success");
         closeEditModal();
-        await loadInvoiceItems();
         await loadInvoiceDetails();
     } catch (err) {
-        alert('خطأ: ' + err.message);
+        showToast("حدث خطأ: " + err.message, "error");
         console.error(err);
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            submitBtn.innerText = 'حفظ التعديلات';
+            submitBtn.classList.remove("opacity-75", "opacity-50", "cursor-not-allowed");
+            submitBtn.innerHTML = "حفظ التعديلات";
         }
     }
 }
@@ -695,44 +969,39 @@ function closeEditModal() {
 async function deleteInvoiceItem(itemId) {
     if (!confirm('هل أنت متأكد من رغبتك في حذف هذا البند نهائياً؟')) return;
 
-    // إشعار بصري فوري للمستخدم ببدء عملية الحذف وإعادة الترتيب تلقائياً
     const notification = document.createElement('div');
     notification.className = 'fixed bottom-4 right-4 bg-[#C00000] text-white px-6 py-3 rounded-lg shadow-xl z-[100] flex items-center gap-3 animate-bounce';
-    notification.innerHTML = `
-        <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        جاري حذف البند وإعادة ترتيب العناصر...
-    `;
+    notification.innerHTML = '<svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> جاري حذف البند وإعادة ترتيب العناصر...';
     document.body.appendChild(notification);
 
+    const oldInvoiceItems = [...invoiceItems];
+    const oldPhotos = { ...itemPhotosLookup };
+
+    invoiceItems = invoiceItems.filter(item => item.id !== itemId);
+    delete itemPhotosLookup[itemId];
+
+    await reorderInvoiceItems();
+
     try {
-        // 1. حذف البند من قاعدة البيانات
         const { error } = await _supabase.from('invoice_items').delete().eq('id', itemId);
         if (error) throw error;
 
-        // 2. إعادة ترتيب بقية العناصر بالتوازي السريع
-        await reorderInvoiceItems();
-
-        // 3. نجاح العملية وتغيير شكل الإشعار
         notification.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-[100] flex items-center gap-2';
         notification.innerHTML = '🎉 تم حذف البند وإعادة ترتيب بقية العناصر بنجاح!';
         setTimeout(() => notification.remove(), 2500);
-
     } catch (err) {
-        console.error('خطأ أثناء الحذف:', err.message);
+        console.error(err.message);
+        invoiceItems = oldInvoiceItems;
+        itemPhotosLookup = oldPhotos;
+        renderInvoiceItemsTable();
+        updateInvoiceItemsFooter();
+
         notification.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-xl z-[100] flex items-center gap-2';
         notification.innerHTML = '❌ فشل الحذف: ' + err.message;
         setTimeout(() => notification.remove(), 4000);
     }
 }
 
-// ==========================================
-// وظائف النافذة المنبثقة (Modal) لتكبير الصور:
-// ==========================================
-
-// 1. دالة فتح الصورة: 
 // تستقبل المتغير (imageUrl) وهو يمثل رابط الصورة التي ضغط عليها المستخدم.
 function openImageModal(imageUrl) {
     // نبحث عن نافذة التكبير في HTML باستخدام الـ ID الخاص بها.
@@ -798,8 +1067,8 @@ function initInvoiceItemsPage() {
     currentInvoiceId = params.get('invoice_id');
 
     if (!currentInvoiceId) {
-        alert('لا يوجد معرف فاتورة');
-        window.location.href = 'invoices.html';
+        showToast('خطأ: معرف الفاتورة غير محدد!', 'error');
+        setTimeout(() => { window.location.href = 'invoices.html'; }, 1500);
         return;
     }
 
@@ -819,6 +1088,8 @@ function initInvoiceItemsPage() {
     if (editDesignPhoto) editDesignPhoto.addEventListener('change', handleEditDesignPhotoChange);
     const editDielinePhoto = document.getElementById('editItemDielinePhoto');
     if (editDielinePhoto) editDielinePhoto.addEventListener('change', handleEditDielinePhotoChange);
+
+
 
     loadInvoiceDetails();
     loadProductsLookup();
@@ -876,21 +1147,21 @@ async function updateInvoiceItemFieldInline(itemId, fieldName, element) {
     const item = invoiceItems.find(i => i.id === itemId);
     if (!item) return;
 
-    let rawValue = element.innerText.trim();
+    let rawValue = element.textContent.trim();
     let parsedValue = rawValue;
 
     // الحقول الرقمية
     const numericFields = ['quantity', 'factory_price_per_unit', 'qty_per_ctn', 'gw_per_ctn_kg', 'length_cm', 'width_cm', 'height_cm', 'CTN', 'shipping_price_per_unit'];
     if (numericFields.includes(fieldName)) {
-        // إزالة الفواصل إن وجدت
-        rawValue = rawValue.replace(/,/g, '');
+        // إزالة الفواصل والمسافات غير المرئية بما فيها المسافات غير القابلة للكسر (non-breaking spaces)
+        rawValue = rawValue.replace(/[\s\u00a0,]/g, '');
         if (rawValue === '') {
-            parsedValue = null;
+            parsedValue = 0;
         } else {
             parsedValue = parseFloat(rawValue);
             if (isNaN(parsedValue)) {
-                alert('يرجى إدخال قيمة رقمية صالحة');
-                element.innerText = item[fieldName] !== null ? item[fieldName] : '';
+                showToast('⚠️ يرجى إدخال قيمة رقمية صالحة!', 'error');
+                element.textContent = item[fieldName] !== null ? item[fieldName] : '0';
                 return;
             }
         }
@@ -920,8 +1191,9 @@ async function updateInvoiceItemFieldInline(itemId, fieldName, element) {
     const keepManualCtn = (fieldName === 'CTN');
     recalculateLocalItemFields(item, keepManualCtn, fieldName);
 
-    // 3. إعادة رسم الجدول والمجاميع فوراً (بسرعة 1 مللي ثانية) بدون أي انتظار للشبكة!
-    renderInvoiceItemsTable();
+    // 3. تحديث الخلية المعدلة والحقول المرتبطة بها فقط (Targeted DOM Update)
+    updateInvoiceItemRowTargeted(itemId);
+    updateInvoiceItemsFooter();
 
     // 4. حفظ التعديل في الخلفية بطلب واحد إلى Supabase
     let updatePayload = { [fieldName]: parsedValue };
@@ -957,11 +1229,12 @@ async function updateInvoiceItemFieldInline(itemId, fieldName, element) {
 
     } catch (err) {
         console.error('خطأ في التحديث التلقائي الخلفي:', err.message);
-        alert('فشل حفظ التعديل في قاعدة البيانات: ' + err.message);
+        showToast('❌ فشل حفظ التعديل في قاعدة البيانات: ' + err.message, 'error');
 
         // استعادة الحالة القديمة بالكامل وإعادة الرسم للتراجع عن الخطأ
         Object.assign(item, oldItemState);
-        renderInvoiceItemsTable();
+        updateInvoiceItemRowTargeted(itemId);
+        updateInvoiceItemsFooter();
     }
 }
 
@@ -995,6 +1268,14 @@ function handleEditableCellKeyDown(event, element) {
                 nextCell = nextCell.nextElementSibling;
             }
         }
+    }
+}
+
+// تفريغ الخلية تلقائياً إذا كانت تحتوي على "0" عند التركيز لتسهيل الكتابة الفورية دون مسح
+function handleEditableCellFocus(element) {
+    const text = element.textContent.trim().replace(/[\u00a0\s]/g, '');
+    if (text === '0' || text === '0.00' || text === '0.0') {
+        element.textContent = '';
     }
 }
 
@@ -1098,8 +1379,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // 3. وضع علامة جاري الرفع لتفعيل مؤشر التحميل الدوار فوق الصورة في الجدول
             uploadingPhotosTracker[trackerKey] = true;
 
-            // 4. إعادة رسم الجدول فوراً (تظهر الصورة واللودر في أقل من 1 مللي ثانية!)
-            renderInvoiceItemsTable();
+            // 4. إعادة بناء صف العنصر فقط فوراً بدلاً من كامل الجدول
+            rebuildInvoiceItemRow(targetItemId);
 
             // تحديد اسم البند ونوع الصورة لإظهاره في التنبيه المتعدد
             let typeName = 'الصورة';
@@ -1158,8 +1439,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     await loadItemPhotosForInvoiceItems(itemIds);
                 }
 
-                // 9. إعادة رسم الجدول لإخفاء علامة التحميل وتثبيت الصورة النهائية
-                renderInvoiceItemsTable();
+                // 9. إعادة بناء صف العنصر فقط لإخفاء علامة التحميل وتثبيت الصورة النهائية
+                rebuildInvoiceItemRow(targetItemId);
 
                 // تحديث التنبيه للنجاح
                 toast.update(`🎉 تم رفع وحفظ ${typeName} بنجاح!`, 'success');
@@ -1176,8 +1457,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 delete uploadingPhotosTracker[trackerKey];
 
-                // إعادة رسم الجدول لإزالة الصورة المؤقتة الفاشلة واللودر
-                renderInvoiceItemsTable();
+                // إعادة بناء صف العنصر فقط لإزالة الصورة المؤقتة الفاشلة واللودر
+                rebuildInvoiceItemRow(targetItemId);
 
                 // تحديث التنبيه للفشل
                 toast.update(`❌ فشل حفظ ${typeName}: ${err.message}`, 'error');
@@ -1286,8 +1567,8 @@ async function selectProductForInvoiceItem(productId) {
     // 1. تحديث تفاؤلي محلي فوري
     invoiceItems[itemIndex].product_id = productId;
 
-    // 2. إعادة رسم الجدول بلحظتها (يتغير رمز المنتج وصورة المنتج فوراً في 1 مللي ثانية!)
-    renderInvoiceItemsTable();
+    // 2. إعادة بناء صف العنصر فقط بلحظتها (يتغير رمز المنتج وصورة المنتج فوراً في 1 مللي ثانية!)
+    rebuildInvoiceItemRow(activeProductSelectorItemId);
 
     // إشعار بصري للمستخدم في الأسفل ببدء الحفظ
     const notification = document.createElement('div');
@@ -1318,9 +1599,9 @@ async function selectProductForInvoiceItem(productId) {
     } catch (err) {
         console.error('خطأ أثناء ربط المنتج:', err.message);
 
-        // التراجع الآمن عند الفشل وإعادة رسم الجدول لحالته السابقة
+        // التراجع الآمن عند الفشل وإعادة بناء الصف لحالته السابقة
         invoiceItems[itemIndex].product_id = oldProductId;
-        renderInvoiceItemsTable();
+        rebuildInvoiceItemRow(activeProductSelectorItemId);
 
         notification.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-xl z-[100] flex items-center gap-2';
         notification.innerHTML = '❌ فشل ربط المنتج: ' + err.message;
@@ -1331,60 +1612,85 @@ async function selectProductForInvoiceItem(productId) {
 async function toggleInvoiceItemStatus(itemId, currentStatus) {
     const newStatus = !currentStatus;
 
-    // إيجاد العنصر لتحديث الذاكرة المحلية والواجهة فوراً (تحديث تفاؤلي)
     const itemIndex = invoiceItems.findIndex(i => i.id === itemId);
     if (itemIndex === -1) return;
 
     const oldStatus = invoiceItems[itemIndex].status;
+    const oldItemName = invoiceItems[itemIndex].item_name;
 
-    // 1. تحديث تفاؤلي محلي فوري
+    // 1. تغيير الحالة في الذاكرة اولا
     invoiceItems[itemIndex].status = newStatus;
 
-    // 2. إعادة رسم الجدول بلحظتها (يتغير الزر فوراً في 1 مللي ثانية!)
-    renderInvoiceItemsTable();
+    // 2. فرز المصفوفة حسب created_at لاعادة كل عنصر الى مكانه الاصلي
+    //    وعند التنشيط: النشط يرجع لتاريخه الاصلي بين بقية النشطة
+    //    وعند الغاء التنشيط: يبقى مكانه التاريخي دون نقله للاسفل
+    if (newStatus === true) {
+        // عند التنشيط: فرز النشط اولا حسب created_at ثم غير النشط حسب created_at
+        invoiceItems = [...invoiceItems].sort((a, b) => {
+            const aActive = a.status === true;
+            const bActive = b.status === true;
+            if (aActive && !bActive) return -1;
+            if (!aActive && bActive) return 1;
+            return new Date(a.created_at) - new Date(b.created_at);
+        });
+        sortActiveFirst = true;
+    } else {
+        // عند الغاء التنشيط: ارجاع الجميع الى ترتيبهم التاريخي (بدون نقل غير النشط للاسفل)
+        invoiceItems = [...invoiceItems].sort((a, b) => {
+            return new Date(a.created_at) - new Date(b.created_at);
+        });
+        sortActiveFirst = false;
+    }
 
-    // إشعار بصري للمستخدم في الأسفل ببدء الحفظ
-    const notification = document.createElement('div');
-    notification.className = 'fixed bottom-4 right-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-xl z-[100] flex items-center gap-3 animate-bounce';
-    notification.innerHTML = `
-        <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        جاري تحديث حالة البند...
-    `;
+    // 3. بعد الفرز: اعادة تسمية البنود النشطة بترتيبها الصحيح في المصفوفة المرتبة
+    const dbUpdates = [];
+    dbUpdates.push({ id: itemId, payload: { status: newStatus } });
+
+    invoiceItems.filter(item => item.status === true).forEach((item, index) => {
+        const expectedName = "Item " + (index + 1);
+        if (item.item_name !== expectedName) {
+            item.item_name = expectedName;
+            dbUpdates.push({ id: item.id, payload: { item_name: expectedName } });
+        }
+    });
+
+    renderInvoiceItemsTable();
+    updateInvoiceItemsFooter();
+
+    const notification = document.createElement("div");
+    notification.className = "fixed bottom-4 right-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-xl z-[100] flex items-center gap-3 animate-bounce";
+    notification.innerHTML = "جاري تحديث حالة البند وإعادة ترقيم العناصر النشطة...";
     document.body.appendChild(notification);
 
     try {
-        // 3. تحديث السجل في قاعدة البيانات (Supabase)
-        const { error } = await _supabase
-            .from('invoice_items')
-            .update({ status: newStatus })
-            .eq('id', itemId);
+        await Promise.all(dbUpdates.map(upd =>
+            _supabase.from("invoice_items")
+                .update(upd.payload)
+                .eq("id", upd.id)
+        ));
 
-        if (error) throw error;
-
-        // 4. نجاح العملية
-        notification.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-[100] flex items-center gap-2';
-        notification.innerHTML = '🎉 تم تحديث حالة البند بنجاح!';
+        notification.className = "fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-[100] flex items-center gap-2";
+        notification.innerHTML = "🎉 تم تحديث حالة البند وإعادة ترتيب النشط بنجاح!";
         setTimeout(() => notification.remove(), 2500);
 
     } catch (err) {
-        console.error('خطأ أثناء تحديث الحالة:', err.message);
+        console.error(err.message);
 
-        // التراجع الآمن عند الفشل وإعادة رسم الجدول لحالته السابقة
         invoiceItems[itemIndex].status = oldStatus;
-        renderInvoiceItemsTable();
+        invoiceItems[itemIndex].item_name = oldItemName;
 
-        notification.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-xl z-[100] flex items-center gap-2';
-        notification.innerHTML = '❌ فشل تحديث الحالة: ' + err.message;
+        renderInvoiceItemsTable();
+        updateInvoiceItemsFooter();
+
+        notification.className = "fixed bottom-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-xl z-[100] flex items-center gap-2";
+        notification.innerHTML = "❌ فشل التحديث: " + err.message;
         setTimeout(() => notification.remove(), 4000);
     }
 }
 
 async function addNewBlankInvoiceItem() {
     if (!currentInvoiceId) {
-        alert('حدث خطأ: لا يوجد معرف فاتورة نشط!');
+        showToast('⚠️ حدث خطأ: لا يوجد معرف فاتورة نشط!', 'error');
         return;
     }
 

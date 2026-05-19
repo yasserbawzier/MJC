@@ -1,6 +1,7 @@
 const PRODUCT_IMAGE_BUCKET = 'product-images';
 let products = [];
 let productTypes = [];
+let currentLimit = 55; // لعرض 50 منتج كحد أقصى في البداية
 
 
 // متغيرات تتبع الرفع التلقائي السريع للميديا
@@ -15,29 +16,22 @@ function showToast(message, type = 'info') {
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
-        container.className = 'fixed bottom-4 right-4 flex flex-col gap-2 z-[9999] max-w-sm select-none';
         document.body.appendChild(container);
     }
     const toast = document.createElement('div');
-    toast.className = `px-5 py-3 rounded-xl shadow-2xl text-white font-bold flex items-center gap-3 transition-all duration-300 transform translate-y-2 opacity-0 text-right dir-rtl`;
-    if (type === 'success') toast.classList.add('bg-green-600');
-    else if (type === 'error') toast.classList.add('bg-red-600');
-    else toast.classList.add('bg-blue-600', 'animate-bounce');
+    toast.className = `toast-item ${type} hidden-toast`;
     toast.innerHTML = message;
     container.appendChild(toast);
     setTimeout(() => {
-        toast.classList.remove('translate-y-2', 'opacity-0');
+        toast.classList.remove('hidden-toast');
     }, 10);
     return {
         update: (newMessage, newType) => {
-            toast.className = `px-5 py-3 rounded-xl shadow-2xl text-white font-bold flex items-center gap-3 transition-all duration-300 text-right dir-rtl`;
-            if (newType === 'success') toast.classList.add('bg-green-600');
-            else if (newType === 'error') toast.classList.add('bg-red-600');
-            else toast.classList.add('bg-blue-600');
+            toast.className = `toast-item ${newType}`;
             toast.innerHTML = newMessage;
         },
         remove: () => {
-            toast.classList.add('translate-y-2', 'opacity-0');
+            toast.classList.add('hidden-toast');
             setTimeout(() => toast.remove(), 300);
         }
     };
@@ -155,6 +149,123 @@ function getTypeName(typeId) {
 
 
 
+function createProductRow(product) {
+    const template = document.getElementById('productRowTemplate');
+    const row = template.content.cloneNode(true).querySelector('tr');
+
+    row.id = `product-row-${product.id}`;
+
+    row.querySelector('.custom-id').textContent = product.product_custom_id || '-';
+
+    const nameCell = row.querySelector('.name-cell');
+    nameCell.textContent = product.product_name || '';
+    nameCell.setAttribute('onblur', `updateProductFieldInline('${product.id}', 'product_name', this)`);
+    nameCell.setAttribute('onkeydown', `handleEditableCellKeyDown(event, this)`);
+
+    const specsCell = row.querySelector('.specs-cell');
+    specsCell.textContent = product.specifications || '';
+    specsCell.setAttribute('onblur', `updateProductFieldInline('${product.id}', 'specifications', this)`);
+    specsCell.setAttribute('onkeydown', `handleEditableCellKeyDown(event, this)`);
+
+    const sampleCell = row.querySelector('.sample-cell');
+    sampleCell.textContent = product.sample_details || '';
+    sampleCell.setAttribute('onblur', `updateProductFieldInline('${product.id}', 'sample_details', this)`);
+    sampleCell.setAttribute('onkeydown', `handleEditableCellKeyDown(event, this)`);
+
+    const moqCell = row.querySelector('.moq-cell');
+    moqCell.textContent = product.moq_of_product ?? '';
+    moqCell.setAttribute('onblur', `updateProductFieldInline('${product.id}', 'moq_of_product', this)`);
+    moqCell.setAttribute('onkeydown', `handleEditableCellKeyDown(event, this)`);
+
+    const daysCell = row.querySelector('.days-cell');
+    daysCell.textContent = product.days_of_manufacturing ?? '';
+    daysCell.setAttribute('onblur', `updateProductFieldInline('${product.id}', 'days_of_manufacturing', this)`);
+    daysCell.setAttribute('onkeydown', `handleEditableCellKeyDown(event, this)`);
+
+    // Image Cell
+    const imageCell = row.querySelector('.image-cell');
+    const imageTrackerKey = `${product.id}_product_image_url`;
+    const isImageUploading = uploadingProductsMediaTracker[imageTrackerKey];
+    if (isImageUploading) {
+        imageCell.innerHTML = `
+            <div class="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 shadow-sm mx-auto flex items-center justify-center bg-gray-50 select-none">
+                ${product.product_image_url ? `<img src="${product.product_image_url}" class="w-full h-full object-cover opacity-50">` : ''}
+                <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                    <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                </div>
+            </div>
+        `;
+    } else if (product.product_image_url) {
+        imageCell.innerHTML = `
+            <div class="relative inline-block group select-none">
+                <button type="button" onclick="openProductMediaActionsModal('${product.id}', 'product_image_url', '${product.product_image_url}')" class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition">
+                    <img src="${product.product_image_url}" alt="صورة المنتج" class="w-16 h-16 object-cover" loading="lazy">
+                </button>
+                <span class="absolute top-0 right-0 w-4 h-4 bg-blue-500 rounded-full border border-white text-white text-[9px] flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition duration-150 pointer-events-none">⚙️</span>
+            </div>
+        `;
+    } else {
+        imageCell.innerHTML = `
+            <button type="button" onclick="openProductMediaActionsModal('${product.id}', 'product_image_url', '')" class="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition flex flex-col items-center justify-center gap-1 mx-auto text-gray-400 hover:text-blue-600 select-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span class="text-[9px] font-bold">+ صورة</span>
+            </button>
+        `;
+    }
+
+    // Video Cell
+    const videoCell = row.querySelector('.video-cell');
+    const videoTrackerKey = `${product.id}_product_video_url`;
+    const isVideoUploading = uploadingProductsMediaTracker[videoTrackerKey];
+    if (isVideoUploading) {
+        videoCell.innerHTML = `
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm select-none mx-auto">
+                <svg class="animate-spin h-3.5 w-3.5 text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                جاري الرفع...
+            </div>
+        `;
+    } else if (product.product_video_url) {
+        videoCell.innerHTML = `
+            <button type="button" onclick="openProductMediaActionsModal('${product.id}', 'product_video_url', '${product.product_video_url}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 hover:text-green-800 transition shadow-sm active:scale-95 select-none mx-auto group">
+                <svg class="w-3.5 h-3.5 fill-current text-green-500 group-hover:scale-110 transition" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                تشغيل الفيديو
+            </button>
+        `;
+    } else {
+        videoCell.innerHTML = `
+            <button type="button" onclick="openProductMediaActionsModal('${product.id}', 'product_video_url', '')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-50 text-gray-500 border border-gray-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition shadow-sm active:scale-95 select-none mx-auto">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                + فيديو
+            </button>
+        `;
+    }
+
+    // Type Select
+    const typeCell = row.querySelector('.type-cell');
+    let typeSelectHtml = `<select onchange="updateProductFieldInline('${product.id}', 'type_id', this)" class="border border-gray-300 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium text-gray-700 select-none" dir="ltr">`;
+    typeSelectHtml += `<option value="">بدون نوع</option>`;
+    productTypes.forEach(type => {
+        const selected = product.type_id === type.id ? 'selected' : '';
+        typeSelectHtml += `<option value="${type.id}" ${selected}>${type.category_name}</option>`;
+    });
+    typeSelectHtml += `</select>`;
+    typeCell.innerHTML = typeSelectHtml;
+
+    // Actions
+    const deleteBtn = row.querySelector('.delete-btn');
+    deleteBtn.setAttribute('onclick', `deleteProduct('${product.id}')`);
+
+    return row;
+}
+
+function rebuildProductRow(productId) {
+    const product = products.find(p => p.id === productId);
+    const row = document.getElementById(`product-row-${productId}`);
+    if (!product || !row) return;
+    const newRow = createProductRow(product);
+    row.replaceWith(newRow);
+}
+
 function renderProductsTable() {
     const tbody = document.getElementById('productsTableBody');
     try {
@@ -172,108 +283,32 @@ function renderProductsTable() {
             tbody.innerHTML = '<tr><td colspan="10" class="p-4 text-center text-gray-500">لا توجد نتائج متاحة.</td></tr>';
             return;
         }
-        tbody.innerHTML = '';
-        filtered.forEach(product => {
-            const row = document.createElement('tr');
-            row.className = 'border-b hover:bg-blue-50 transition text-left';
+        const fragment = document.createDocumentFragment();
 
-            // تتبع حالة رفع ميديا المنتج تفاؤلياً
-            const imageTrackerKey = `${product.id}_product_image_url`;
-            const isImageUploading = uploadingProductsMediaTracker[imageTrackerKey];
-            const videoTrackerKey = `${product.id}_product_video_url`;
-            const isVideoUploading = uploadingProductsMediaTracker[videoTrackerKey];
+        // جلب المنتجات حسب الحد المسموح به حالياً (مثلاً أول 50 منتج فقط)
+        const productsToShow = filtered.slice(0, currentLimit);
 
-            // خلية الصورة
-            let imageCell = '';
-            if (isImageUploading) {
-                imageCell = `
-                    <div class="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 shadow-sm mx-auto flex items-center justify-center bg-gray-50 select-none">
-                        ${product.product_image_url ? `<img src="${product.product_image_url}" class="w-full h-full object-cover opacity-50">` : ''}
-                        <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-                            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                `;
-            } else if (product.product_image_url) {
-                imageCell = `
-                    <div class="relative inline-block group select-none">
-                        <button type="button" onclick="openProductMediaActionsModal('${product.id}', 'product_image_url', '${product.product_image_url}')" class="inline-block rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition">
-                            <img src="${product.product_image_url}" alt="صورة المنتج" class="w-16 h-16 object-cover">
-                        </button>
-                        <span class="absolute top-0 right-0 w-4 h-4 bg-blue-500 rounded-full border border-white text-white text-[9px] flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition duration-150 pointer-events-none">⚙️</span>
-                    </div>
-                `;
-            } else {
-                imageCell = `
-                    <button type="button" onclick="openProductMediaActionsModal('${product.id}', 'product_image_url', '')" class="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition flex flex-col items-center justify-center gap-1 mx-auto text-gray-400 hover:text-blue-600 select-none">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        <span class="text-[9px] font-bold">+ صورة</span>
+        productsToShow.forEach(product => {
+            const row = createProductRow(product);
+            fragment.appendChild(row);
+        });
+
+        // إذا كان هناك منتجات أخرى لم تُعرض بعد، نضيف زر "عرض المزيد"
+        if (filtered.length > currentLimit) {
+            const loadMoreRow = document.createElement('tr');
+            loadMoreRow.innerHTML = `
+                <td colspan="10" class="p-4 text-center">
+                    <button onclick="loadMoreProducts()" class="bg-blue-50 border border-blue-200 text-blue-700 px-6 py-2 rounded-full font-bold hover:bg-blue-100 transition-all shadow-sm">
+                        عرض المزيد من المنتجات (متبقي ${filtered.length - currentLimit})
                     </button>
-                `;
-            }
-
-            // خلية الفيديو
-            let videoCell = '';
-            if (isVideoUploading) {
-                videoCell = `
-                    <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm select-none mx-auto">
-                        <svg class="animate-spin h-3.5 w-3.5 text-blue-500" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        جاري الرفع...
-                    </div>
-                `;
-            } else if (product.product_video_url) {
-                videoCell = `
-                    <button type="button" onclick="openProductMediaActionsModal('${product.id}', 'product_video_url', '${product.product_video_url}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 hover:text-green-800 transition shadow-sm active:scale-95 select-none mx-auto group">
-                        <svg class="w-3.5 h-3.5 fill-current text-green-500 group-hover:scale-110 transition" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z"/>
-                        </svg>
-                        تشغيل الفيديو
-                    </button>
-                `;
-            } else {
-                videoCell = `
-                    <button type="button" onclick="openProductMediaActionsModal('${product.id}', 'product_video_url', '')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-50 text-gray-500 border border-gray-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition shadow-sm active:scale-95 select-none mx-auto">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        + فيديو
-                    </button>
-                `;
-            }
-
-            // قائمة منسدلة لاختيار النوع
-            let typeSelectHtml = `<select onchange="updateProductFieldInline('${product.id}', 'type_id', this)" class="border border-gray-300 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium text-gray-700 select-none" dir="ltr">`;
-            typeSelectHtml += `<option value="">بدون نوع</option>`;
-            productTypes.forEach(type => {
-                const selected = product.type_id === type.id ? 'selected' : '';
-                typeSelectHtml += `<option value="${type.id}" ${selected}>${type.category_name}</option>`;
-            });
-            typeSelectHtml += `</select>`;
-
-            row.innerHTML = `
-                <td class="p-4 text-sm text-gray-400 bg-gray-50 font-mono select-none" dir="ltr">${product.product_custom_id || '-'}</td>
-                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'product_name', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 font-medium text-gray-900 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150" dir="ltr">${product.product_name || ''}</td>
-                <td class="p-4 text-center">${imageCell}</td>
-                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'specifications', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 text-sm text-gray-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150 whitespace-pre-wrap" dir="ltr">${product.specifications || ''}</td>
-                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'sample_details', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 text-sm text-gray-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150 whitespace-pre-wrap" dir="ltr">${product.sample_details || ''}</td>
-                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'moq_of_product', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 text-gray-700 font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150" dir="ltr">${product.moq_of_product ?? ''}</td>
-                <td contenteditable="true" onblur="updateProductFieldInline('${product.id}', 'days_of_manufacturing', this)" onkeydown="handleEditableCellKeyDown(event, this)" class="p-4 text-gray-700 font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150" dir="ltr">${product.days_of_manufacturing ?? ''}</td>
-                <td class="p-4 text-center">${videoCell}</td>
-                <td class="p-4" dir="ltr">${typeSelectHtml}</td>
-                <td class="p-4 text-left whitespace-nowrap select-none">
-                    <button onclick="deleteProduct('${product.id}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm">حذف</button>
                 </td>
             `;
-            tbody.appendChild(row);
-        });
+            fragment.appendChild(loadMoreRow);
+        }
+
+        tbody.innerHTML = '';
+        tbody.appendChild(fragment);
+
     } catch (error) {
         console.error('Error rendering products table:', error);
         tbody.innerHTML = '<tr><td colspan="10" class="p-4 text-center text-red-500">حدث خطأ أثناء عرض المنتجات.</td></tr>';
@@ -436,9 +471,21 @@ async function deleteProduct(id) {
     }
 }
 
-document.getElementById('productSearchInput').addEventListener('input', renderProductsTable);
-document.getElementById('productTypeFilter').addEventListener('change', renderProductsTable);
-document.getElementById('productStatusFilter').addEventListener('change', renderProductsTable);
+// وظيفة لزيادة عدد المنتجات المعروضة عند الضغط على زر "عرض المزيد"
+function loadMoreProducts() {
+    currentLimit += 50; // زيادة الحد بمقدار 50
+    renderProductsTable(); // إعادة رسم الجدول بالعدد الجديد
+}
+
+// إعادة تعيين الحد إلى 50 عند أي عملية بحث أو تصفية
+function handleFilterChange() {
+    currentLimit = 50;
+    renderProductsTable();
+}
+
+document.getElementById('productSearchInput').addEventListener('input', handleFilterChange);
+document.getElementById('productTypeFilter').addEventListener('change', handleFilterChange);
+document.getElementById('productStatusFilter').addEventListener('change', handleFilterChange);
 document.getElementById('addProductTypeForm').addEventListener('submit', addProductType);
 
 // تحديث حقل منتج فردي مباشرة من الجدول (Inline Editing)
@@ -491,8 +538,8 @@ async function updateProductFieldInline(productId, fieldName, element) {
         customIdUpdate = product.product_custom_id;
     }
 
-    // إعادة رسم الجدول فوراً بدون انتظار
-    renderProductsTable();
+    // إعادة بناء صف العنصر فقط فوراً بدون انتظار
+    rebuildProductRow(productId);
 
     // إضاءة الخلية المعدلة
     const updatedCell = (element.tagName === 'SELECT') ? element.parentElement : element;
@@ -530,7 +577,7 @@ async function updateProductFieldInline(productId, fieldName, element) {
         if (customIdUpdate !== null) {
             product.product_custom_id = oldCustomId;
         }
-        renderProductsTable();
+        rebuildProductRow(productId);
     }
 }
 
@@ -706,8 +753,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             // 3. وضع علامة جاري الرفع لتفعيل مؤشر التحميل الدوار فوق الصورة في الجدول
             uploadingProductsMediaTracker[trackerKey] = true;
 
-            // 4. إعادة رسم الجدول فوراً
-            renderProductsTable();
+            // 4. إعادة بناء صف العنصر فقط فوراً
+            rebuildProductRow(targetProductId);
 
             // تحديد اسم البند ونوع الصورة لإظهاره في التنبيه
             let typeName = 'الملف';
@@ -744,9 +791,9 @@ window.addEventListener('DOMContentLoaded', async () => {
                     prod[targetMediaType] = uploadedUrl;
                 }
 
-                // حذف المؤشر وإعادة رسم الجدول فوراً بالرابط النهائي الجديد
+                // حذف المؤشر وإعادة بناء صف العنصر فوراً بالرابط النهائي الجديد
                 delete uploadingProductsMediaTracker[trackerKey];
-                renderProductsTable();
+                rebuildProductRow(targetProductId);
 
                 toast.update(`🎉 تم حفظ ${typeName} بنجاح!`, 'success');
                 setTimeout(() => toast.remove(), 2500);
@@ -759,7 +806,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     prod[targetMediaType] = oldMediaUrl;
                 }
                 delete uploadingProductsMediaTracker[trackerKey];
-                renderProductsTable();
+                rebuildProductRow(targetProductId);
 
                 toast.update(`❌ فشل حفظ ${typeName}: ${err.message}`, 'error');
                 setTimeout(() => toast.remove(), 4000);

@@ -7,6 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="App.js"></script>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="product_types.css">
 </head>
 <body class="bg-gray-100 p-8">
     <div class="max-w-7xl mx-auto">
@@ -78,6 +79,19 @@
             </form>
         </div>
     </div>
+
+    <!-- قالب صف نوع المنتج لفصل الـ HTML عن الـ JS وتحسين السرعة -->
+    <template id="productTypeRowTemplate">
+        <tr class="border-b hover:bg-blue-50 transition">
+            <td class="p-4 text-gray-700 font-medium name-cell"></td>
+            <td class="p-4 text-sm text-gray-700 description-cell"></td>
+            <td class="p-4 text-gray-500 date-cell"></td>
+            <td class="p-4 text-left whitespace-nowrap actions-cell">
+                <button class="edit-btn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-sm mr-2 shadow-sm active:scale-95 transition">Edit / تعديل</button>
+                <button class="delete-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm shadow-sm active:scale-95 transition">Delete / حذف</button>
+            </td>
+        </tr>
+    </template>
 
     <script src="product_types.js"></script>
 </body>

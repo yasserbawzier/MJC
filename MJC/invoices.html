@@ -6,6 +6,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="invoices.css">
 </head>
 <body class="bg-gray-100 p-8">
     <div class="max-w-7xl mx-auto">
@@ -156,6 +157,25 @@
             </form>
         </div>
     </div>
+
+    <!-- قالب صف الفاتورة لفصل الـ HTML عن الـ JS وتحسين السرعة -->
+    <template id="invoiceRowTemplate">
+        <tr class="border-b hover:bg-blue-50 transition relative group text-left">
+            <td class="p-4 number-cell"></td>
+            <td class="p-4 customer-id-cell"></td>
+            <td class="p-4 customer-name-cell"></td>
+            <td class="p-4 shipping-destination-cell"></td>
+            <td class="p-4 shipping-address-cell"></td>
+            <td class="p-4 commission-cell"></td>
+            <td class="p-4 price-cell"></td>
+            <td class="p-4 text-left whitespace-nowrap actions-cell">
+                <button class="edit-btn opacity-0 group-hover:opacity-100 bg-blue-600 text-white px-3 py-1 rounded shadow-sm hover:bg-blue-700 transition-all text-sm ml-2">تعديل</button>
+                <button class="add-items-btn opacity-0 group-hover:opacity-100 bg-green-600 text-white px-3 py-1 rounded shadow-sm hover:bg-green-700 transition-all text-sm ml-2">إضافة عناصر</button>
+                <button class="commissions-btn opacity-0 group-hover:opacity-100 bg-yellow-500 text-white px-3 py-1 rounded shadow-sm hover:bg-yellow-600 transition-all text-sm ml-2">العمولات</button>
+                <button class="delete-btn opacity-0 group-hover:opacity-100 bg-red-600 text-white px-3 py-1 rounded shadow-sm hover:bg-red-700 transition-all text-sm">حذف</button>
+            </td>
+        </tr>
+    </template>
 
     <script src="App.js"></script>
     <script src="invoices.js"></script>

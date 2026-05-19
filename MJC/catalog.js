@@ -20,11 +20,11 @@ async function initCatalogPage() {
             { data: customersData, error: customersError },
             { data: countriesData, error: countriesError }
         ] = await Promise.all([
-            _supabase.from('invoice_items').select('*').order('created_at', { ascending: false }),
-            _supabase.from('products').select('*'),
-            _supabase.from('invoices').select('*'),
+            _supabase.from('invoice_items').select('id, product_id, invoice_id, factory_price_per_unit, quantity, shipping_price_per_unit, fixed_commission_rate, created_at, size, specifications, item_name, length_cm, width_cm, height_cm, qty_per_ctn, CTN, sample, production, unit_type').order('created_at', { ascending: false }),
+            _supabase.from('products').select('id, product_name, product_custom_id, product_image_url, specifications'),
+            _supabase.from('invoices').select('id, customer_id, shipping_destination_id'),
             _supabase.from('customers').select('id, customer_custom_id, full_name'),
-            _supabase.from('shipping_rates').select('*')
+            _supabase.from('shipping_rates').select('id, country_name, country_code')
         ]);
 
         if (itemsError) throw itemsError;
@@ -198,6 +198,8 @@ function renderCatalog() {
     catalogGrid.classList.remove('hidden');
     catalogGrid.innerHTML = '';
 
+    const fragment = document.createDocumentFragment();
+
     // 4. بناء الكروت البرمجية الفاخرة لكل منتج
     filteredItems.forEach(item => {
         const product = item.product;
@@ -239,7 +241,7 @@ function renderCatalog() {
             <div>
                 <!-- صورة المنتج والوسوم العلوية -->
                 <div onclick="openProductDetails('${item.id}')" class="relative h-56 w-full bg-slate-100 overflow-hidden group cursor-pointer">
-                    <img src="${imgUrl}" alt="${product.product_name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <img src="${imgUrl}" alt="${product.product_name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent"></div>
                     
                     <!-- رقم معرف المنتج المخصص -->
@@ -346,8 +348,10 @@ function renderCatalog() {
                 </div>
             </div>
         `;
-        catalogGrid.appendChild(card);
+        fragment.appendChild(card);
     });
+    
+    catalogGrid.appendChild(fragment);
 }
 
 // تبديل حالة إضافة المنتج لـ "سلة الطلبات"

@@ -20,6 +20,8 @@
 
     <!-- ملف التنسيق العام للمشروع -->
     <link rel="stylesheet" href="style.css">
+    <!-- ملف التنسيق الخاص بصفحة الشحن -->
+    <link rel="stylesheet" href="shipping.css">
 </head>
 <body class="bg-gray-100 p-8">
     <!-- حاوية المحتوى الرئيسية -->
@@ -113,6 +115,19 @@
             </form>
         </div>
     </div>
+
+    <!-- قالب صف الشحن لفصل HTML عن JS وتحسين الأداء -->
+    <template id="shippingRowTemplate">
+        <tr class="border-b hover:bg-blue-50 transition">
+            <td class="p-4 text-gray-900 font-bold name-cell"></td>
+            <td class="p-4 text-sm text-gray-700 font-mono code-cell" dir="ltr"></td>
+            <td class="p-4 text-gray-700 font-medium price-cell"></td>
+            <td class="p-4 text-left whitespace-nowrap actions-cell">
+                <button class="edit-btn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-sm ml-2 shadow-sm active:scale-95 transition">تعديل</button>
+                <button class="delete-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm shadow-sm active:scale-95 transition">حذف</button>
+            </td>
+        </tr>
+    </template>
 
     <!-- مهم: تحميل App.js أولاً لأنه يعرف _supabase -->
     <script src="App.js"></script>

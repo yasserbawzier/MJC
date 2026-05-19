@@ -11,11 +11,12 @@ async function checkAndLoadCustomers() {
     tableBody.innerHTML = '<tr><td colspan="7" class="p-4 text-center">جاري التحقق من الاتصال...</td></tr>';
 
     try {
-        // جلب جميع البيانات من جدول customers وترتيبها من الأحدث للأقدم
+        // جلب 50 عميل كحد أقصى لتسريع التحميل
         const { data, error } = await _supabase
             .from('customers')
-            .select('*')
-            .order('created_at', { ascending: false });
+            .select('id, customer_custom_id, full_name, phone, country_code, company_name, company_field, created_at')
+            .order('created_at', { ascending: false })
+            .limit(50);
 
         if (error) {
             console.error("فشل الاتصال بـ Supabase:", error.message);
@@ -30,19 +31,34 @@ async function checkAndLoadCustomers() {
 
         // مسح محتوى الجدول القديم للبدء برسم البيانات الجديدة
         tableBody.innerHTML = '';
+        const fragment = document.createDocumentFragment();
 
-        /**
-  * هذا الجزء داخل حلقة data.forEach في ملف customers.js
-  */
-        // data.forEach: تكرار على كل عميل مستلم من قاعدة البيانات.
-        // customer => { ... }: كل دورة تعطينا كائن عميل واحد.
         data.forEach(customer => {
-            // createElement('tr'): إنشاء صف جدول جديد لكل عميل.
-            const row = document.createElement('tr');
-            // className: إضافة تنسيقات Tailwind للصف (حدود، تحويم، مؤثرات).
-            row.className = "border-b hover:bg-blue-50 transition cursor-pointer relative group";
+            fragment.appendChild(createCustomerRow(customer));
+        });
 
-            row.innerHTML = `
+        tableBody.appendChild(fragment);
+
+        console.log("تم تحديث الجدول بنجاح! ✅");
+
+    } catch (err) {
+        console.error("خطأ غير متوقع:", err);
+    }
+}
+
+/**
+ * دالة مساعدة لإنشاء صف جدول (tr) لعميل واحد
+ */
+function createCustomerRow(customer) {
+    // تخزين بيانات العميل في الذاكرة لسرعة الوصول إليها عند التعديل
+    window.customersMap = window.customersMap || {};
+    window.customersMap[customer.id] = customer;
+
+    const row = document.createElement('tr');
+    row.id = `customer-row-${customer.id}`;
+    row.className = "border-b hover:bg-blue-50 transition cursor-pointer relative group";
+
+    row.innerHTML = `
         <td class="p-4 text-sm text-gray-500">${customer.customer_custom_id || '-'}</td>
         <td class="p-4 font-bold text-gray-800">${customer.full_name || 'بدون اسم'}</td>
         <td class="p-4 font-mono text-sm">${customer.phone || '-'}</td>
@@ -50,16 +66,12 @@ async function checkAndLoadCustomers() {
         <td class="p-4">${customer.company_name || '-'}</td>
         <td class="p-4">${customer.company_field || '-'}</td>
         <td class="p-4 text-left whitespace-nowrap">
-            <!-- زر التعديل (Edit Button) -->
-            <!-- نمرر customer.id (UUID) لكي نعرف من هو العميل المطلوب تعديله -->
             <button 
                 onclick="event.stopPropagation(); openEditModal('${customer.id}')" 
                 class="opacity-0 group-hover:opacity-100 bg-blue-600 text-white px-3 py-1 rounded shadow-sm hover:bg-blue-700 transition-all text-sm ml-2"
             >
                 تعديل
             </button>
-
-            <!-- زر الحذف (Delete Button) -->
             <button 
                 onclick="event.stopPropagation(); deleteThisCustomer('${customer.id}')" 
                 class="opacity-0 group-hover:opacity-100 bg-red-600 text-white px-3 py-1 rounded shadow-sm hover:bg-red-700 transition-all text-sm"
@@ -68,14 +80,7 @@ async function checkAndLoadCustomers() {
             </button>
         </td>
     `;
-            tableBody.appendChild(row);
-        });
-
-        console.log("تم تحديث الجدول بنجاح! ✅");
-
-    } catch (err) {
-        console.error("خطأ غير متوقع:", err);
-    }
+    return row;
 }
 /**
  * دالة لإظهار النافذة المنبثقة
@@ -153,10 +158,7 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
     const field = document.getElementById('custField').value;
 
     try {
-        // 3. أمر الإدراج (Insert) في سوبابيز
-        // - from('customers'): نحدد الجدول الهدف
-        // - insert([{ ... }]): نرسل مصفوفة تحتوي على كائن (Object) بأسماء الأعمدة كما هي في القاعدة
-        // ملاحظة: لا نرسل ID لأن القاعدة تولده تلقائياً بفضل gen_random_uuid()
+        // 3. أمر الإدراج (Insert) في سوبابيز مع إرجاع البيانات الجديدة (select)
         const { data, error } = await _supabase
             .from('customers')
             .insert([
@@ -167,7 +169,9 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
                     company_name: company,
                     company_field: field
                 }
-            ]);
+            ])
+            .select('id, customer_custom_id, full_name, phone, country_code, company_name, company_field, created_at')
+            .single();
 
         // 4. التحقق من وجود خطأ أثناء الإرسال
         if (error) throw error;
@@ -175,11 +179,17 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
         // 5. إذا نجح الحفظ:
         alert("تم حفظ العميل بنجاح! ✅");
 
-        // إغلاق النافذة المنبثقة (نستدعي الدالة التي كتبناها سابقاً في نفس الملف)
+        // إغلاق النافذة المنبثقة
         closeAddModal();
 
-        // إعادة تحديث الجدول لعرض العميل الجديد فوراً دون الحاجة لعمل Refresh يدوي
-        checkAndLoadCustomers();
+        // التحديث المحلي في المتصفح دون إعادة تحميل كل البيانات
+        const tableBody = document.getElementById('customersTableBody');
+        const emptyMessage = tableBody.querySelector('td[colspan="7"]');
+        if (emptyMessage && emptyMessage.innerText.includes('لا يوجد')) {
+            tableBody.innerHTML = ''; // مسح رسالة "لا يوجد عملاء" إذا كانت موجودة
+        }
+        // إضافة الصف الجديد في بداية الجدول
+        tableBody.prepend(createCustomerRow(data));
 
     } catch (err) {
         console.error("خطأ في الحفظ:", err.message);
@@ -249,8 +259,11 @@ async function deleteThisCustomer(targetUuid) {
 
         if (error) throw error;
 
-        // 2. تحديث قائمة العملاء
-        await checkAndLoadCustomers();
+        // 2. التحديث المحلي: حذف الصف من المتصفح مباشرة بدلاً من إعادة جلب كل البيانات
+        const rowElement = document.getElementById(`customer-row-${targetUuid}`);
+        if (rowElement) {
+            rowElement.remove();
+        }
 
         // 3. عرض رسالة النجاح وتعديل مظهر التنبيه للون الأخضر الأنيق
         toast.update('🎉 تم حذف العميل بنجاح!', 'success');
@@ -270,14 +283,10 @@ async function deleteThisCustomer(targetUuid) {
  */
 async function openEditModal(uuid) {
     try {
-        // 1. جلب بيانات هذا العميل تحديداً باستخدام الـ UUID
-        const { data, error } = await _supabase
-            .from('customers')
-            .select('*')
-            .eq('id', uuid)
-            .single(); // جلب سطر واحد فقط
+        // 1. استرجاع بيانات العميل المحفوظة في الذاكرة فوراً بدلاً من الانتظار لجلبها من السيرفر
+        const data = window.customersMap && window.customersMap[uuid];
 
-        if (error) throw error;
+        if (!data) throw new Error("تعذر العثور على بيانات العميل محلياً.");
 
         // 2. تعبئة الحقول في نافذة التعديل بالبيانات القادمة من السيرفر
         document.getElementById('editCustName').value = data.full_name;
@@ -356,7 +365,7 @@ async function updateEditedCustomerData(e) {
          * .update({...}): القيم الجديدة التي نريد حفظها بدل القديمة
          * .eq('id', targetCustomerId): تحديث السجل الذي يحمل نفس المعرّف فقط
          */
-        const { error } = await _supabase
+        const { data, error } = await _supabase
             .from('customers')
             .update({
                 full_name: editedName,
@@ -365,15 +374,22 @@ async function updateEditedCustomerData(e) {
                 company_name: editedCompany,
                 company_field: editedField
             })
-            .eq('id', targetCustomerId);
+            .eq('id', targetCustomerId)
+            .select('id, customer_custom_id, full_name, phone, country_code, company_name, company_field, created_at')
+            .single();
 
         // إذا رجعت القاعدة بخطأ نوقف المسار الناجح ونرمي الخطأ إلى catch
         if (error) throw error;
 
-        // نجاح العملية: رسالة للمستخدم + إخفاء نافذة التعديل + إعادة تحميل الجدول
+        // نجاح العملية: رسالة للمستخدم + إخفاء نافذة التعديل
         alert("تم تحديث بيانات العميل بنجاح! ✅");
         closeEditModal();
-        checkAndLoadCustomers();
+
+        // التحديث المحلي في المتصفح دون إعادة تحميل كل البيانات
+        const oldRow = document.getElementById(`customer-row-${targetCustomerId}`);
+        if (oldRow) {
+            oldRow.replaceWith(createCustomerRow(data));
+        }
 
     } catch (err) {
         // معالجة الأخطاء: طباعة الخطأ في الكونسول + تنبيه المستخدم

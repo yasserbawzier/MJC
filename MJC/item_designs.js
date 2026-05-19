@@ -144,6 +144,7 @@ function renderItemDesignsTable() {
     }
 
     tbody.innerHTML = '';
+    const fragment = document.createDocumentFragment();
     itemDesigns.forEach(design => {
         const invoiceItem = getInvoiceItemById(design.item_id);
         const itemName = invoiceItem ? invoiceItem.item_name || `Item ${design.item_id}` : `Item ${design.item_id}`;
@@ -169,8 +170,9 @@ function renderItemDesignsTable() {
                 <button onclick="editItemDesign('${design.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700 text-sm mr-2">تعديل</button>
             </td>
         `;
-        tbody.appendChild(row);
+        fragment.appendChild(row);
     });
+    tbody.appendChild(fragment);
 }
 
 // تحميل تفاصيل الفاتورة
@@ -192,7 +194,7 @@ async function loadInvoiceDetails() {
 
 // تحميل عناصر الفاتورة
 async function loadInvoiceItems() {
-    const { data, error } = await _supabase.from('invoice_items').select('*').eq('invoice_id', currentInvoiceId).order('created_at', { ascending: true });
+    const { data, error } = await _supabase.from('invoice_items').select('id, item_name').eq('invoice_id', currentInvoiceId).order('created_at', { ascending: true });
     if (error) { console.error(error.message); return; }
     invoiceItemsLookup = data || [];
     renderInvoiceItemsOptions();
@@ -206,7 +208,7 @@ async function loadItemDesigns() {
         return;
     }
 
-    const { data, error } = await _supabase.from('item_designs').select('*').in('item_id', invoiceItemsLookup.map(item => item.id)).order('created_at', { ascending: false });
+    const { data, error } = await _supabase.from('item_designs').select('id, item_id, file_url, specifications, asset_type_id, version_number, is_approved, admin_notes, created_at').in('item_id', invoiceItemsLookup.map(item => item.id)).order('created_at', { ascending: false });
     if (error) { console.error(error.message); return; }
     itemDesigns = data || [];
     renderItemDesignsTable();

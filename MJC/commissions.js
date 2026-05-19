@@ -92,31 +92,18 @@ function renderCommissionsTable() {
 
     if (commissionsItems.length === 0) {
         tbody.innerHTML = '<tr><td colspan="17" class="p-8 text-center text-gray-500">لا توجد عناصر لهذه الفاتورة.</td></tr>';
-        tfoot.innerHTML = '';
+        if(tfoot) tfoot.innerHTML = '';
         return;
     }
 
-    // Build dropdown options for commission rate
-    const rateOptions = commissionRates.map(r =>
-        `<option value="${r.commission_rate}">${r.commission_rate}</option>`
-    ).join('');
-
-    // Build dropdown options for note (commission base)
-    const noteOptions = `
-        <option value="factory">Factory Price / سعر المصنع</option>
-        <option value="factory_shipping">Factory + Shipping / المصنع + الشحن</option>
-    `;
-
-    let totalMOQ = 0, totalFactoryAmt = 0, totalShipping = 0,
-        totalProdShipping = 0, totalCommission = 0, totalUSD = 0;
-
+    const fragment = document.createDocumentFragment();
     tbody.innerHTML = '';
 
     commissionsItems.forEach(item => {
         const product = productsMap[item.product_id] || null;
         const productId = product ? (product.product_custom_id || '-') : '-';
         const productImg = product && product.product_image_url
-            ? `<img src="${product.product_image_url}" class="w-12 h-12 object-cover rounded-lg border border-gray-200 mx-auto" alt="img">`
+            ? `<img src="${product.product_image_url}" class="w-12 h-12 object-cover rounded-lg border border-gray-200 mx-auto" alt="img" loading="lazy">`
             : '<span class="text-gray-400">-</span>';
 
         const factoryPrice = Number(item.factory_price_per_unit || 0);
@@ -125,12 +112,9 @@ function renderCommissionsTable() {
         const shippingPerUnit = Number(item.shipping_price_per_unit || 0);
         const totalShippingItem = Number(item.total_shipping_cost || 0);
 
-        // Product + Shipping per unit
         const prodShippingUnit = factoryPrice + shippingPerUnit;
-        // Total Product + Shipping
         const totalProdShippingItem = prodShippingUnit * moq;
 
-        // Commission base (from notes_commission field)
         const noteVal = item.notes_commission || 'factory';
         const commissionRate = Number(item.fixed_commission_rate || 0);
 
@@ -145,15 +129,6 @@ function renderCommissionsTable() {
         const unitPriceUSD = prodShippingUnit + commissionPerUnit;
         const totalAmountUSD = unitPriceUSD * moq;
 
-        // Accumulate totals
-        totalMOQ += moq;
-        totalFactoryAmt += totalAmount;
-        totalShipping += totalShippingItem;
-        totalProdShipping += totalProdShippingItem;
-        totalCommission += totalCommissionItem;
-        totalUSD += totalAmountUSD;
-
-        // Active badge
         const activeBadge = item.status
             ? `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200"><span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>Active</span>`
             : `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-gray-50 text-gray-500 border border-gray-200"><span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>Inactive</span>`;
@@ -168,10 +143,10 @@ function renderCommissionsTable() {
             <td class="p-3 text-gray-700 border border-gray-200">${fmt(factoryPrice)}</td>
             <td class="p-3 text-gray-700 font-semibold border border-gray-200">${fmt(moq, 0)}</td>
             <td class="p-3 text-gray-700 font-semibold bg-blue-50 border border-gray-200">${fmt(totalAmount)}</td>
-            <td class="p-3 text-gray-700 border border-gray-200">${fmt(shippingPerUnit)}</td>
-            <td class="p-3 text-gray-700 bg-red-50 border border-gray-200">${fmt(totalShippingItem)}</td>
-            <td class="p-3 text-gray-700 border border-gray-200">${fmt(prodShippingUnit)}</td>
-            <td class="p-3 text-gray-700 bg-green-50 font-semibold border border-gray-200">${fmt(totalProdShippingItem)}</td>
+            <td id="cell-shipping-unit-${item.id}" class="p-3 text-gray-700 border border-gray-200">${fmt(shippingPerUnit)}</td>
+            <td id="cell-shipping-total-${item.id}" class="p-3 text-gray-700 bg-red-50 border border-gray-200">${fmt(totalShippingItem)}</td>
+            <td id="cell-prod-ship-unit-${item.id}" class="p-3 text-gray-700 border border-gray-200">${fmt(prodShippingUnit)}</td>
+            <td id="cell-prod-ship-total-${item.id}" class="p-3 text-gray-700 bg-green-50 font-semibold border border-gray-200">${fmt(totalProdShippingItem)}</td>
             <td class="p-3 border border-gray-200">
                 <select onchange="updateNoteCommission('${item.id}', this.value)" class="text-xs border border-purple-200 rounded-lg px-2 py-1.5 bg-purple-50 text-purple-800 font-semibold focus:ring-2 focus:ring-purple-400 outline-none cursor-pointer">
                     <option value="factory" ${noteVal === 'factory' ? 'selected' : ''}>Factory Price</option>
@@ -186,32 +161,75 @@ function renderCommissionsTable() {
         ).join('')}
                 </select>
             </td>
-            <td class="p-3 text-purple-700 font-semibold border border-gray-200">${fmt(commissionPerUnit)}</td>
-            <td class="p-3 text-purple-700 font-bold bg-purple-50 border border-gray-200">${fmt(totalCommissionItem)}</td>
-            <td class="p-3 text-yellow-700 font-semibold border border-gray-200">${fmt(unitPriceUSD)}</td>
-            <td class="p-3 text-yellow-700 font-bold bg-yellow-50 border border-gray-200">${fmt(totalAmountUSD)}</td>
+            <td id="cell-comm-unit-${item.id}" class="p-3 text-purple-700 font-semibold border border-gray-200 transition-colors">${fmt(commissionPerUnit)}</td>
+            <td id="cell-comm-total-${item.id}" class="p-3 text-purple-700 font-bold bg-purple-50 border border-gray-200 transition-colors">${fmt(totalCommissionItem)}</td>
+            <td id="cell-usd-unit-${item.id}" class="p-3 text-yellow-700 font-semibold border border-gray-200 transition-colors">${fmt(unitPriceUSD)}</td>
+            <td id="cell-usd-total-${item.id}" class="p-3 text-yellow-700 font-bold bg-yellow-50 border border-gray-200 transition-colors">${fmt(totalAmountUSD)}</td>
         `;
-        tbody.appendChild(row);
+        fragment.appendChild(row);
     });
 
-    // Totals row
-    tfoot.innerHTML = `
-        <tr class="bg-gray-100 font-bold border-t-2 border-double border-gray-400 text-xs">
-            <td class="p-3 border border-gray-200 text-center" colspan="5">Total / المجموع</td>
-            <td class="p-3 border border-gray-200 text-center bg-blue-50">${fmt(totalMOQ, 0)}</td>
-            <td class="p-3 border border-gray-200 text-center bg-blue-100">${fmt(totalFactoryAmt)}</td>
-            <td class="p-3 border border-gray-200 text-center">-</td>
-            <td class="p-3 border border-gray-200 text-center bg-red-100">${fmt(totalShipping)}</td>
-            <td class="p-3 border border-gray-200 text-center">-</td>
-            <td class="p-3 border border-gray-200 text-center bg-green-100">${fmt(totalProdShipping)}</td>
-            <td class="p-3 border border-gray-200 text-center" colspan="3">-</td>
-            <td class="p-3 border border-gray-200 text-center bg-purple-100">${fmt(totalCommission)}</td>
-            <td class="p-3 border border-gray-200 text-center">-</td>
-            <td class="p-3 border border-gray-200 text-center bg-yellow-100">${fmt(totalUSD)}</td>
-        </tr>
-    `;
+    tbody.appendChild(fragment);
+    updateFooterTotals();
+}
 
-    // تحديث قيم بطاقات الإحصائيات في الصفحة
+// ─── Targeted Updates & Calculations ──────────────────────────────────────────
+
+function updateFooterTotals() {
+    let totalMOQ = 0, totalFactoryAmt = 0, totalShipping = 0,
+        totalProdShipping = 0, totalCommission = 0, totalUSD = 0;
+
+    commissionsItems.forEach(item => {
+        const factoryPrice = Number(item.factory_price_per_unit || 0);
+        const moq = Number(item.quantity || 0);
+        const totalAmount = Number(item.total_factory_price || 0);
+        const shippingPerUnit = Number(item.shipping_price_per_unit || 0);
+        const totalShippingItem = Number(item.total_shipping_cost || 0);
+
+        const prodShippingUnit = factoryPrice + shippingPerUnit;
+        const totalProdShippingItem = prodShippingUnit * moq;
+
+        const noteVal = item.notes_commission || 'factory';
+        const commissionRate = Number(item.fixed_commission_rate || 0);
+
+        let commissionPerUnit = 0;
+        if (noteVal === 'factory') {
+            commissionPerUnit = factoryPrice * commissionRate;
+        } else {
+            commissionPerUnit = prodShippingUnit * commissionRate;
+        }
+
+        const totalCommissionItem = commissionPerUnit * moq;
+        const unitPriceUSD = prodShippingUnit + commissionPerUnit;
+        const totalAmountUSD = unitPriceUSD * moq;
+
+        totalMOQ += moq;
+        totalFactoryAmt += totalAmount;
+        totalShipping += totalShippingItem;
+        totalProdShipping += totalProdShippingItem;
+        totalCommission += totalCommissionItem;
+        totalUSD += totalAmountUSD;
+    });
+
+    const tfoot = document.getElementById('commissionsTotalRow');
+    if (tfoot) {
+        tfoot.innerHTML = `
+            <tr class="bg-gray-100 font-bold border-t-2 border-double border-gray-400 text-xs">
+                <td class="p-3 border border-gray-200 text-center" colspan="5">Total / المجموع</td>
+                <td class="p-3 border border-gray-200 text-center bg-blue-50">${fmt(totalMOQ, 0)}</td>
+                <td class="p-3 border border-gray-200 text-center bg-blue-100">${fmt(totalFactoryAmt)}</td>
+                <td class="p-3 border border-gray-200 text-center">-</td>
+                <td class="p-3 border border-gray-200 text-center bg-red-100">${fmt(totalShipping)}</td>
+                <td class="p-3 border border-gray-200 text-center">-</td>
+                <td class="p-3 border border-gray-200 text-center bg-green-100">${fmt(totalProdShipping)}</td>
+                <td class="p-3 border border-gray-200 text-center" colspan="3">-</td>
+                <td class="p-3 border border-gray-200 text-center bg-purple-100">${fmt(totalCommission)}</td>
+                <td class="p-3 border border-gray-200 text-center">-</td>
+                <td class="p-3 border border-gray-200 text-center bg-yellow-100">${fmt(totalUSD)}</td>
+            </tr>
+        `;
+    }
+
     const statQty = document.getElementById('statTotalQuantity');
     if (statQty) statQty.textContent = totalMOQ.toLocaleString('en-US');
 
@@ -228,15 +246,68 @@ function renderCommissionsTable() {
     if (statUSD) statUSD.textContent = '$' + totalUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function highlightCell(element) {
+    if (!element) return;
+    element.classList.add('bg-green-100');
+    setTimeout(() => {
+        element.classList.remove('bg-green-100');
+    }, 500);
+}
+
+function updateItemRowCells(itemId) {
+    const item = commissionsItems.find(i => i.id === itemId);
+    if (!item) return;
+
+    const factoryPrice = Number(item.factory_price_per_unit || 0);
+    const moq = Number(item.quantity || 0);
+    const shippingPerUnit = Number(item.shipping_price_per_unit || 0);
+    const totalShippingItem = Number(item.total_shipping_cost || 0);
+    const prodShippingUnit = factoryPrice + shippingPerUnit;
+    const totalProdShippingItem = prodShippingUnit * moq;
+    const noteVal = item.notes_commission || 'factory';
+    const commissionRate = Number(item.fixed_commission_rate || 0);
+
+    let commissionPerUnit = 0;
+    if (noteVal === 'factory') {
+        commissionPerUnit = factoryPrice * commissionRate;
+    } else {
+        commissionPerUnit = prodShippingUnit * commissionRate;
+    }
+
+    const totalCommissionItem = commissionPerUnit * moq;
+    const unitPriceUSD = prodShippingUnit + commissionPerUnit;
+    const totalAmountUSD = unitPriceUSD * moq;
+
+    const cellShippingUnit = document.getElementById(`cell-shipping-unit-${itemId}`);
+    const cellShippingTotal = document.getElementById(`cell-shipping-total-${itemId}`);
+    const cellProdShipUnit = document.getElementById(`cell-prod-ship-unit-${itemId}`);
+    const cellProdShipTotal = document.getElementById(`cell-prod-ship-total-${itemId}`);
+    const cellCommUnit = document.getElementById(`cell-comm-unit-${itemId}`);
+    const cellCommTotal = document.getElementById(`cell-comm-total-${itemId}`);
+    const cellUsdUnit = document.getElementById(`cell-usd-unit-${itemId}`);
+    const cellUsdTotal = document.getElementById(`cell-usd-total-${itemId}`);
+
+    if (cellShippingUnit) { cellShippingUnit.textContent = fmt(shippingPerUnit); highlightCell(cellShippingUnit); }
+    if (cellShippingTotal) { cellShippingTotal.textContent = fmt(totalShippingItem); highlightCell(cellShippingTotal); }
+    if (cellProdShipUnit) { cellProdShipUnit.textContent = fmt(prodShippingUnit); highlightCell(cellProdShipUnit); }
+    if (cellProdShipTotal) { cellProdShipTotal.textContent = fmt(totalProdShippingItem); highlightCell(cellProdShipTotal); }
+    if (cellCommUnit) { cellCommUnit.textContent = fmt(commissionPerUnit); highlightCell(cellCommUnit); }
+    if (cellCommTotal) { cellCommTotal.textContent = fmt(totalCommissionItem); highlightCell(cellCommTotal); }
+    if (cellUsdUnit) { cellUsdUnit.textContent = fmt(unitPriceUSD); highlightCell(cellUsdUnit); }
+    if (cellUsdTotal) { cellUsdTotal.textContent = fmt(totalAmountUSD); highlightCell(cellUsdTotal); }
+}
+
 // ─── Inline update functions ──────────────────────────────────────────────────
 
 async function updateCommissionRate(itemId, rateValue) {
     const rate = rateValue === '' ? null : Number(rateValue);
 
-    // Update locally
+    // Targeted update locally
     const item = commissionsItems.find(i => i.id === itemId);
     if (item) item.fixed_commission_rate = rate;
-    renderCommissionsTable();
+    
+    updateItemRowCells(itemId);
+    updateFooterTotals();
 
     // Persist to DB
     const { error } = await _supabase
@@ -251,10 +322,12 @@ async function updateCommissionRate(itemId, rateValue) {
 }
 
 async function updateNoteCommission(itemId, noteValue) {
-    // Update locally
+    // Targeted update locally
     const item = commissionsItems.find(i => i.id === itemId);
     if (item) item.notes_commission = noteValue;
-    renderCommissionsTable();
+    
+    updateItemRowCells(itemId);
+    updateFooterTotals();
 
     // Persist locally using localStorage
     localStorage.setItem(`notes_commission_${itemId}`, noteValue);
@@ -281,8 +354,10 @@ async function updateShippingPriceInline(itemId, element) {
     item.shipping_price_per_unit = parsedValue;
     item.total_shipping_cost = Number((parsedValue * (item.quantity || 0)).toFixed(2));
 
-    // Rerender table to update all totals and display formatted values
-    renderCommissionsTable();
+    // Targeted update to update all totals locally
+    element.innerText = fmt(parsedValue);
+    updateItemRowCells(itemId);
+    updateFooterTotals();
 
     // Persist to DB
     const { error } = await _supabase

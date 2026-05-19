@@ -1,6 +1,54 @@
 // متغيرات عامة للشحن
 let shippingRates = [];
 let currentEditingShippingId = null;
+let currentLimit = 50; // لعرض 50 عنصر كحد أقصى مبدئياً لزيادة سرعة العرض
+
+// نظام إشعارات ذكي لترتيب التنبيهات فوق بعضها
+function showToast(message, type = 'info') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast-item ${type} hidden-toast`;
+    toast.innerHTML = message;
+    container.appendChild(toast);
+    
+    // تأخير بسيط للسماح للحركة (Animation) بالعمل
+    setTimeout(() => {
+        toast.classList.remove('hidden-toast');
+    }, 10);
+    
+    return {
+        update: (newMessage, newType) => {
+            toast.className = `toast-item ${newType}`;
+            toast.innerHTML = newMessage;
+        },
+        remove: () => {
+            toast.classList.add('hidden-toast');
+            setTimeout(() => toast.remove(), 300);
+        }
+    };
+}
+
+// إنشاء صف الشحن من القالب (Template) لزيادة السرعة
+function createShippingRow(rate) {
+    const template = document.getElementById('shippingRowTemplate');
+    const row = template.content.cloneNode(true).querySelector('tr');
+    
+    row.id = `shipping-row-${rate.id}`;
+    
+    row.querySelector('.name-cell').textContent = rate.country_name || '-';
+    row.querySelector('.code-cell').textContent = rate.country_code || '-';
+    row.querySelector('.price-cell').textContent = rate.price_per_cbm ? rate.price_per_cbm.toFixed(2) : '-';
+    
+    row.querySelector('.edit-btn').setAttribute('onclick', `openEditShippingModal('${rate.id}')`);
+    row.querySelector('.delete-btn').setAttribute('onclick', `deleteShippingRate('${rate.id}')`);
+    
+    return row;
+}
 
 // دالة تحميل أسعار الشحن من قاعدة البيانات
 async function loadShippingRates() {
@@ -10,7 +58,7 @@ async function loadShippingRates() {
     try {
         const { data, error } = await _supabase
             .from('shipping_rates')
-            .select('*')
+            .select('id, country_name, country_code, price_per_cbm')
             .order('country_name', { ascending: true });
 
         if (error) {
@@ -20,12 +68,6 @@ async function loadShippingRates() {
         }
 
         shippingRates = data || [];
-
-        if (shippingRates.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">لا توجد أسعار شحن حالياً.</td></tr>';
-            return;
-        }
-
         renderShippingTable();
     } catch (error) {
         console.error('Unexpected error:', error);
@@ -33,27 +75,46 @@ async function loadShippingRates() {
     }
 }
 
-// دالة عرض الجدول
+// دالة عرض الجدول بالكامل (مع نظام عرض الدفعات)
 function renderShippingTable() {
     const tbody = document.getElementById('shippingTableBody');
     tbody.innerHTML = '';
+    
+    if (shippingRates.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">لا توجد أسعار شحن حالياً.</td></tr>';
+        return;
+    }
 
-    shippingRates.forEach(rate => {
-        const row = document.createElement('tr');
-        row.className = 'border-b hover:bg-blue-50 transition';
+    const fragment = document.createDocumentFragment();
+    
+    // جلب العناصر المسموح بعرضها فقط (50 عنصر مبدئياً)
+    const ratesToShow = shippingRates.slice(0, currentLimit);
 
-        row.innerHTML = `
-            <td class="p-4 text-gray-900">${rate.country_name || '-'}</td>
-            <td class="p-4 text-sm text-gray-700">${rate.country_code || '-'}</td>
-            <td class="p-4 text-gray-700">${rate.price_per_cbm ? rate.price_per_cbm.toFixed(2) : '-'}</td>
-            <td class="p-4 text-left whitespace-nowrap">
-                <button onclick="openEditShippingModal('${rate.id}')" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-sm ml-2">تعديل</button>
-                <button onclick="deleteShippingRate('${rate.id}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm">حذف</button>
+    ratesToShow.forEach(rate => {
+        const row = createShippingRow(rate);
+        fragment.appendChild(row);
+    });
+    
+    // إذا كان هناك عناصر أخرى لم تُعرض بعد، نضيف زر "عرض المزيد"
+    if (shippingRates.length > currentLimit) {
+        const loadMoreRow = document.createElement('tr');
+        loadMoreRow.innerHTML = `
+            <td colspan="4" class="p-4 text-center">
+                <button onclick="loadMoreShippingRates()" class="bg-blue-50 border border-blue-200 text-blue-700 px-6 py-2 rounded-full font-bold hover:bg-blue-100 transition-all shadow-sm">
+                    عرض المزيد من الدول (متبقي ${shippingRates.length - currentLimit})
+                </button>
             </td>
         `;
+        fragment.appendChild(loadMoreRow);
+    }
+    
+    tbody.appendChild(fragment);
+}
 
-        tbody.appendChild(row);
-    });
+// دالة لزيادة عدد العناصر المعروضة عند الضغط على زر عرض المزيد
+function loadMoreShippingRates() {
+    currentLimit += 50;
+    renderShippingTable();
 }
 
 // دوال إدارة المودال
@@ -75,11 +136,11 @@ function closeEditShippingModal() {
     currentEditingShippingId = null;
 }
 
-// دالة فتح مودال التعديل مع البيانات
-async function openEditShippingModal(id) {
+// دالة فتح مودال التعديل بشكل فوري من الذاكرة
+function openEditShippingModal(id) {
     const rate = shippingRates.find(r => r.id === id);
     if (!rate) {
-        alert('لم يتم العثور على سعر الشحن');
+        showToast('لم يتم العثور على السعر المرجو تعديله في الذاكرة!', 'error');
         return;
     }
 
@@ -91,9 +152,19 @@ async function openEditShippingModal(id) {
     showEditShippingModal();
 }
 
-// دالة حفظ سعر شحن جديد
+// دالة حفظ سعر شحن جديد (مع تحديث محلي)
 async function saveShippingRate(event) {
     event.preventDefault();
+
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <svg class="animate-spin h-5 w-5 text-white inline-block ml-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            جاري الحفظ...
+        `;
+        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    }
 
     const rateData = {
         country_name: document.getElementById('shipCountryName').value.trim(),
@@ -102,37 +173,65 @@ async function saveShippingRate(event) {
     };
 
     if (!rateData.country_name || !rateData.country_code || isNaN(rateData.price_per_cbm)) {
-        alert('يرجى ملء جميع الحقول بشكل صحيح');
+        showToast('يرجى ملء جميع الحقول بشكل صحيح', 'error');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'حفظ';
+            submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+        }
         return;
     }
 
-    try {
-        const { error } = await _supabase
-            .from('shipping_rates')
-            .insert([rateData]);
+    const toast = showToast('جاري حفظ سعر الشحن...', 'info');
 
-        if (error) {
-            console.error('Error saving shipping rate:', error);
-            alert('فشل في حفظ سعر الشحن: ' + error.message);
-            return;
-        }
+    try {
+        const { data, error } = await _supabase
+            .from('shipping_rates')
+            .insert([rateData])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        // تحديث الذاكرة المحلية والواجهة فوراً بدون إعادة تحميل من السيرفر
+        shippingRates.push(data);
+        
+        // إعادة ترتيب المصفوفة أبجدياً كما في السيرفر
+        shippingRates.sort((a, b) => (a.country_name || '').localeCompare(b.country_name || ''));
+        
+        // إعادة رسم الجدول ليعكس الترتيب الجديد
+        renderShippingTable();
 
         closeAddShippingModal();
-        await loadShippingRates();
-        alert('تم إضافة سعر الشحن بنجاح');
+        toast.update('🎉 تم إضافة سعر الشحن بنجاح!', 'success');
+        setTimeout(() => toast.remove(), 3000);
     } catch (error) {
-        console.error('Unexpected error:', error);
-        alert('حدث خطأ غير متوقع');
+        console.error('Error saving shipping rate:', error);
+        toast.update(`❌ فشل الإضافة: ${error.message || 'خطأ غير معروف'}`, 'error');
+        setTimeout(() => toast.remove(), 4000);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'حفظ';
+            submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+        }
     }
 }
 
-// دالة تحديث سعر شحن
+// دالة تحديث سعر شحن (مع تحديث محلي)
 async function updateShippingRate(event) {
     event.preventDefault();
 
-    if (!currentEditingShippingId) {
-        alert('لم يتم تحديد سعر الشحن للتعديل');
-        return;
+    if (!currentEditingShippingId) return;
+
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <svg class="animate-spin h-5 w-5 text-white inline-block ml-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            جاري التحديث...
+        `;
+        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
     }
 
     const rateData = {
@@ -142,36 +241,67 @@ async function updateShippingRate(event) {
     };
 
     if (!rateData.country_name || !rateData.country_code || isNaN(rateData.price_per_cbm)) {
-        alert('يرجى ملء جميع الحقول بشكل صحيح');
+        showToast('يرجى ملء جميع الحقول بشكل صحيح', 'error');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'حفظ التعديلات';
+            submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+        }
         return;
     }
 
+    const toast = showToast('جاري تحديث السعر...', 'info');
+
     try {
-        const { error } = await _supabase
+        const { data, error } = await _supabase
             .from('shipping_rates')
             .update(rateData)
-            .eq('id', currentEditingShippingId);
+            .eq('id', currentEditingShippingId)
+            .select()
+            .single();
 
-        if (error) {
-            console.error('Error updating shipping rate:', error);
-            alert('فشل في تحديث سعر الشحن: ' + error.message);
-            return;
+        if (error) throw error;
+
+        // التحديث المحلي في الذاكرة
+        const index = shippingRates.findIndex(r => r.id === currentEditingShippingId);
+        if (index !== -1) {
+            shippingRates[index] = data;
+        }
+
+        // التحديث المحلي في الشاشة فقط (Optimistic UI) بدون إعادة رسم كامل
+        const existingRow = document.getElementById(`shipping-row-${currentEditingShippingId}`);
+        if (existingRow) {
+            const newRow = createShippingRow(data);
+            existingRow.replaceWith(newRow);
+            
+            // إضاءة خضراء لتأكيد التعديل بصرياً
+            newRow.classList.add('bg-green-100');
+            setTimeout(() => newRow.classList.remove('bg-green-100'), 1000);
         }
 
         closeEditShippingModal();
-        await loadShippingRates();
-        alert('تم تحديث سعر الشحن بنجاح');
+        toast.update('🎉 تم تحديث سعر الشحن بنجاح!', 'success');
+        setTimeout(() => toast.remove(), 3000);
     } catch (error) {
-        console.error('Unexpected error:', error);
-        alert('حدث خطأ غير متوقع');
+        console.error('Error updating shipping rate:', error);
+        toast.update(`❌ فشل التحديث: ${error.message || 'خطأ غير معروف'}`, 'error');
+        setTimeout(() => toast.remove(), 4000);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'حفظ التعديلات';
+            submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+        }
     }
 }
 
-// دالة حذف سعر شحن
+// دالة حذف سعر شحن (مع تحديث محلي)
 async function deleteShippingRate(id) {
-    if (!confirm('هل أنت متأكد من حذف هذا السعر؟')) {
+    if (!confirm('هل أنت متأكد من حذف هذا السعر نهائياً؟ لا يمكن التراجع عن هذا الإجراء.')) {
         return;
     }
+
+    const toast = showToast('جاري حذف السعر...', 'info');
 
     try {
         const { error } = await _supabase
@@ -179,17 +309,26 @@ async function deleteShippingRate(id) {
             .delete()
             .eq('id', id);
 
-        if (error) {
-            console.error('Error deleting shipping rate:', error);
-            alert('فشل في حذف سعر الشحن: ' + error.message);
-            return;
+        if (error) throw error;
+
+        // التحديث المحلي
+        shippingRates = shippingRates.filter(r => r.id !== id);
+        
+        const row = document.getElementById(`shipping-row-${id}`);
+        if (row) {
+            row.classList.add('opacity-0', 'scale-95'); // تأثير اختفاء أنيق
+            setTimeout(() => {
+                row.remove();
+                if (shippingRates.length === 0) renderShippingTable();
+            }, 300);
         }
 
-        await loadShippingRates();
-        alert('تم حذف سعر الشحن بنجاح');
+        toast.update('🗑️ تم الحذف بنجاح!', 'success');
+        setTimeout(() => toast.remove(), 3000);
     } catch (error) {
-        console.error('Unexpected error:', error);
-        alert('حدث خطأ غير متوقع');
+        console.error('Error deleting shipping rate:', error);
+        toast.update(`❌ فشل الحذف: ${error.message || 'خطأ غير معروف'}`, 'error');
+        setTimeout(() => toast.remove(), 4000);
     }
 }
 

@@ -1,13 +1,23 @@
 /**
- * صفحة الفواتير:
- * - تعرض بيانات invoices للمستخدم بشكل مفهوم (بدون IDs الخام).
- * - تستخدم customer_custom_id واسم الدولة وcommission_rate بدل المفاتيح الخارجية.
- * - لا ترسل Price_Per_CBM عند الإضافة/التعديل لأن القاعدة تعبيه تلقائيا.
+ * صفحة الفواتير المحسنة:
+ * - تعرض بيانات invoices للمستخدم بشكل مفهوم وسريع بفضل تقنية القوالب (Templates).
+ * - التحديث الفوري المباشر (Optimistic UI) عند الإضافة والتعديل والحذف دون إعادة تحميل كامل الصفحة.
+ * - التفاعل اللحظي دون تأخير وحماية الأزرار من الضغط المزدوج.
+ * - استخدام نظام إشعارات Toasts أنيق ومقروء.
  */
 
 let customersLookup = [];
 let shippingLookup = [];
 let commissionsLookup = [];
+let invoices = [];
+let currentLimit = 50;
+let currentEditingInvoiceId = null;
+
+// خرائط البحث العالمية (Global Lookup Maps) لمنع إعادة بنائها وتجنب البطء والتعليق
+let customersMap = {};
+let customerNameMap = {};
+let shippingMap = {};
+let commissionsMap = {};
 
 function getTodayDateISO() {
     return new Date().toISOString().split('T')[0];
@@ -44,7 +54,40 @@ function fillSelectOptions(selectId, list, labelBuilder) {
     });
 }
 
+// نظام إشعارات ذكي لترتيب التنبيهات فوق بعضها
+function showToast(message, type = 'info') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast-item ${type} hidden-toast`;
+    toast.innerHTML = message;
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.remove('hidden-toast');
+    }, 10);
+    
+    return {
+        update: (newMessage, newType) => {
+            toast.className = `toast-item ${newType}`;
+            toast.innerHTML = newMessage;
+        },
+        remove: () => {
+            toast.classList.add('hidden-toast');
+            setTimeout(() => toast.remove(), 300);
+        }
+    };
+}
+
 async function loadFormLookups() {
+    if (customersLookup.length > 0 && shippingLookup.length > 0 && commissionsLookup.length > 0) {
+        return; // محملة مسبقاً
+    }
+
     const [customersRes, shippingRes, commissionsRes] = await Promise.all([
         _supabase.from('customers').select('id, customer_custom_id, full_name'),
         _supabase.from('shipping_rates').select('id, country_name'),
@@ -59,6 +102,12 @@ async function loadFormLookups() {
     shippingLookup = shippingRes.data || [];
     commissionsLookup = commissionsRes.data || [];
 
+    // بناء خرائط البحث مرة واحدة فقط عند تحميل البيانات لضمان سرعة خيالية في الفلترة والبحث
+    customersMap = buildLookupMap(customersLookup, 'customer_custom_id');
+    customerNameMap = buildLookupMap(customersLookup, 'full_name');
+    shippingMap = buildLookupMap(shippingLookup, 'country_name');
+    commissionsMap = buildLookupMap(commissionsLookup, 'commission_rate');
+
     fillSelectOptions('invoiceCustomerId', customersLookup, item => item.customer_custom_id || 'بدون ID');
     fillSelectOptions('editInvoiceCustomerId', customersLookup, item => item.customer_custom_id || 'بدون ID');
 
@@ -69,6 +118,31 @@ async function loadFormLookups() {
     fillSelectOptions('editInvoiceCommissionId', commissionsLookup, item => `${item.commission_rate ?? '-'} %`);
 }
 
+// دالة إنشاء صف الفاتورة من القالب (Template) لسرعة معالجة الـ DOM
+function createInvoiceRow(item) {
+    const template = document.getElementById('invoiceRowTemplate');
+    const row = template.content.cloneNode(true).querySelector('tr');
+    
+    row.id = `invoice-row-${item.id}`;
+
+    row.querySelector('.number-cell').textContent = item.invoice_number || '-';
+    row.querySelector('.customer-id-cell').textContent = customersMap[item.customer_id] || '-';
+    row.querySelector('.customer-name-cell').textContent = customerNameMap[item.customer_id] || '-';
+    row.querySelector('.shipping-destination-cell').textContent = shippingMap[item.shipping_destination_id] || '-';
+    row.querySelector('.shipping-address-cell').textContent = item.shipping_address_text || '-';
+    row.querySelector('.commission-cell').textContent = commissionsMap[item.commission_id] !== undefined ? `${commissionsMap[item.commission_id]} %` : '-';
+    row.querySelector('.price-cell').textContent = item.Price_Per_CBM ?? '-';
+
+    // تعيين الأحداث على الأزرار
+    row.querySelector('.edit-btn').setAttribute('onclick', `openEditInvoiceModal('${item.id}')`);
+    row.querySelector('.add-items-btn').setAttribute('onclick', `openInvoiceItemsPage('${item.id}')`);
+    row.querySelector('.commissions-btn').setAttribute('onclick', `openInvoiceCommissionsPage('${item.id}')`);
+    row.querySelector('.delete-btn').setAttribute('onclick', `deleteInvoice('${item.id}')`);
+
+    return row;
+}
+
+// جلب الفواتير الأساسية من السيرفر
 async function checkAndLoadInvoices() {
     const tableBody = document.getElementById('invoicesTableBody');
     tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center">جاري التحميل...</td></tr>';
@@ -77,14 +151,12 @@ async function checkAndLoadInvoices() {
         await loadFormLookups();
 
         const periodFilter = document.getElementById('invoicePeriodFilter')?.value || 'week';
-        const searchText = normalizeText(document.getElementById('invoiceSearchInput')?.value || '');
 
         let query = _supabase
             .from('invoices')
             .select('id, invoice_number, customer_id, shipping_destination_id, shipping_address_text, commission_id, Price_Per_CBM, invoice_date, created_at')
             .order('created_at', { ascending: false });
 
-        // الافتراضي آخر أسبوع لتخفيف التحميل.
         if (periodFilter === 'week') {
             query = query.gte('invoice_date', getDateDaysAgoISO(7));
         } else if (periodFilter === 'month') {
@@ -98,63 +170,75 @@ async function checkAndLoadInvoices() {
             return;
         }
 
-        if (!data || data.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500">لا توجد فواتير حالياً.</td></tr>';
-            return;
-        }
-
-        const customerMap = buildLookupMap(customersLookup, 'customer_custom_id');
-        const customerNameMap = buildLookupMap(customersLookup, 'full_name');
-        const shippingMap = buildLookupMap(shippingLookup, 'country_name');
-        const commissionsMap = buildLookupMap(commissionsLookup, 'commission_rate');
-
-        const filteredData = data.filter(item => {
-            if (!searchText) return true;
-
-            const invoiceNumber = normalizeText(item.invoice_number);
-            const customerCustomId = normalizeText(customerMap[item.customer_id]);
-            const shippingDestination = normalizeText(shippingMap[item.shipping_destination_id]);
-            const shippingAddressText = normalizeText(item.shipping_address_text);
-
-            return (
-                invoiceNumber.includes(searchText) ||
-                customerCustomId.includes(searchText) ||
-                shippingDestination.includes(searchText) ||
-                shippingAddressText.includes(searchText)
-            );
-        });
-
-        if (filteredData.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500">لا توجد نتائج مطابقة للبحث.</td></tr>';
-            return;
-        }
-
-        tableBody.innerHTML = '';
-        filteredData.forEach(item => {
-            const row = document.createElement('tr');
-            row.className = 'border-b hover:bg-blue-50 transition relative group';
-
-            row.innerHTML = `
-                <td class="p-4">${item.invoice_number || '-'}</td>
-                <td class="p-4">${customerMap[item.customer_id] || '-'}</td>
-                <td class="p-4">${customerNameMap[item.customer_id] || '-'}</td>
-                <td class="p-4">${shippingMap[item.shipping_destination_id] || '-'}</td>
-                <td class="p-4">${item.shipping_address_text || '-'}</td>
-                <td class="p-4">${commissionsMap[item.commission_id] ?? '-'}</td>
-                <td class="p-4">${item.Price_Per_CBM ?? '-'}</td>
-                <td class="p-4 text-left whitespace-nowrap">
-                    <button onclick="openEditInvoiceModal('${item.id}')" class="opacity-0 group-hover:opacity-100 bg-blue-600 text-white px-3 py-1 rounded shadow-sm hover:bg-blue-700 transition-all text-sm ml-2">تعديل</button>
-                    <button onclick="openInvoiceItemsPage('${item.id}')" class="opacity-0 group-hover:opacity-100 bg-green-600 text-white px-3 py-1 rounded shadow-sm hover:bg-green-700 transition-all text-sm ml-2">إضافة عناصر</button>
-                    <button onclick="openInvoiceCommissionsPage('${item.id}')" class="opacity-0 group-hover:opacity-100 bg-yellow-500 text-white px-3 py-1 rounded shadow-sm hover:bg-yellow-600 transition-all text-sm ml-2">العمولات</button>
-                    <button onclick="deleteInvoice('${item.id}')" class="opacity-0 group-hover:opacity-100 bg-red-600 text-white px-3 py-1 rounded shadow-sm hover:bg-red-700 transition-all text-sm">حذف</button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
+        invoices = data || [];
+        renderInvoicesTable();
     } catch (err) {
         console.error('فشل تحميل الفواتير:', err);
-        tableBody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-red-500">حدث خطأ غير متوقع.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-red-500">حدث خطأ غير متوقع.</td></tr>';
     }
+}
+
+// رسم الجدول مع الفلترة ودعم الـ Pagination (عرض المزيد)
+function renderInvoicesTable() {
+    const tbody = document.getElementById('invoicesTableBody');
+    tbody.innerHTML = '';
+
+    if (invoices.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500">لا توجد فواتير في هذه الفترة حالياً.</td></tr>';
+        return;
+    }
+
+    const searchText = normalizeText(document.getElementById('invoiceSearchInput')?.value || '');
+
+    // فلترة الفواتير في الذاكرة (سريعة جداً لأن خرائط البحث جاهزة مسبقاً)
+    const filtered = invoices.filter(item => {
+        if (!searchText) return true;
+
+        const invoiceNumber = normalizeText(item.invoice_number);
+        const customerCustomId = normalizeText(customersMap[item.customer_id]);
+        const shippingDestination = normalizeText(shippingMap[item.shipping_destination_id]);
+        const shippingAddressText = normalizeText(item.shipping_address_text);
+
+        return (
+            invoiceNumber.includes(searchText) ||
+            customerCustomId.includes(searchText) ||
+            shippingDestination.includes(searchText) ||
+            shippingAddressText.includes(searchText)
+        );
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500">لا توجد نتائج مطابقة للبحث.</td></tr>';
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    const invoicesToShow = filtered.slice(0, currentLimit);
+
+    invoicesToShow.forEach(item => {
+        const row = createInvoiceRow(item);
+        fragment.appendChild(row);
+    });
+
+    // إضافة زر عرض المزيد
+    if (filtered.length > currentLimit) {
+        const loadMoreRow = document.createElement('tr');
+        loadMoreRow.innerHTML = `
+            <td colspan="8" class="p-4 text-center">
+                <button onclick="loadMoreInvoices()" class="bg-blue-50 border border-blue-200 text-blue-700 px-6 py-2 rounded-full font-bold hover:bg-blue-100 transition-all shadow-sm">
+                    عرض المزيد من الفواتير (متبقي ${filtered.length - currentLimit})
+                </button>
+            </td>
+        `;
+        fragment.appendChild(loadMoreRow);
+    }
+
+    tbody.appendChild(fragment);
+}
+
+function loadMoreInvoices() {
+    currentLimit += 50;
+    renderInvoicesTable();
 }
 
 function openInvoiceItemsPage(invoiceId) {
@@ -179,16 +263,28 @@ function closeAddInvoiceModal() {
 
 function closeEditInvoiceModal() {
     document.getElementById('editInvoiceModal').classList.add('hidden');
-    window.currentEditingInvoiceId = null;
+    currentEditingInvoiceId = null;
 }
 
+// إعادة تعيين الحد الأقصى عند تغيير الفلاتر أو البحث
+function handleFilterChange() {
+    currentLimit = 50;
+    renderInvoicesTable();
+}
+
+// دالة حفظ فاتورة جديدة (تحديث فوري)
 document.getElementById('addInvoiceForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.innerText = 'جاري الحفظ...';
-    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <svg class="animate-spin h-5 w-5 text-white inline-block ml-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            جاري الحفظ...
+        `;
+        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    }
 
     const payload = {
         customer_id: document.getElementById('invoiceCustomerId').value,
@@ -200,65 +296,74 @@ document.getElementById('addInvoiceForm').addEventListener('submit', async (e) =
     const invoiceDate = document.getElementById('invoiceDate').value || getTodayDateISO();
     payload.invoice_date = invoiceDate;
 
-    try {
-        // لا نرسل Price_Per_CBM: القاعدة هي التي تعبيه تلقائيا.
-        const { error } = await _supabase.from('invoices').insert([payload]);
-        if (error) throw error;
+    const toast = showToast('جاري حفظ الفاتورة...', 'info');
 
-        alert('تمت إضافة الفاتورة بنجاح ✅');
-        closeAddInvoiceModal();
-        checkAndLoadInvoices();
-    } catch (err) {
-        console.error('فشل الإضافة:', err.message);
-        alert('حدث خطأ أثناء الإضافة: ' + err.message);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerText = 'حفظ';
-        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
-});
-
-async function openEditInvoiceModal(uuid) {
     try {
         const { data, error } = await _supabase
             .from('invoices')
-            .select('id, invoice_number, customer_id, shipping_destination_id, shipping_address_text, commission_id, Price_Per_CBM, invoice_date')
-            .eq('id', uuid)
+            .insert([payload])
+            .select()
             .single();
 
         if (error) throw error;
 
-        document.getElementById('editInvoiceNumber').value = data.invoice_number || '';
-        document.getElementById('editInvoiceCustomerId').value = data.customer_id || '';
-        document.getElementById('editInvoiceShippingDestinationId').value = data.shipping_destination_id || '';
-        document.getElementById('editInvoiceShippingAddressText').value = data.shipping_address_text || '';
-        document.getElementById('editInvoiceCommissionId').value = data.commission_id || '';
-        document.getElementById('editInvoiceDate').value = data.invoice_date || '';
-        document.getElementById('editPricePerCbmPreview').value = data.Price_Per_CBM ?? '';
+        // التحديث المحلي
+        invoices.unshift(data); // إضافة الفاتورة الجديدة لأول القائمة
+        renderInvoicesTable();
 
-        window.currentEditingInvoiceId = uuid;
-        document.getElementById('editInvoiceModal').classList.remove('hidden');
+        closeAddInvoiceModal();
+        toast.update('🎉 تم إضافة الفاتورة بنجاح!', 'success');
+        setTimeout(() => toast.remove(), 3000);
     } catch (err) {
-        alert('فشل جلب بيانات الفاتورة: ' + err.message);
+        console.error('فشل الإضافة:', err);
+        toast.update(`❌ فشل حفظ الفاتورة: ${err.message || 'خطأ غير معروف'}`, 'error');
+        setTimeout(() => toast.remove(), 4000);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'حفظ';
+            submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+        }
     }
-}
+});
 
-async function updateEditedInvoiceData(e) {
-    e.preventDefault();
-
-    const targetId = window.currentEditingInvoiceId;
-    if (!targetId) {
-        alert('لا يوجد فاتورة محددة للتعديل.');
+// فتح مودال التعديل بشكل فوري من الذاكرة المحلية
+function openEditInvoiceModal(uuid) {
+    const data = invoices.find(inv => inv.id === uuid);
+    if (!data) {
+        showToast('لم يتم العثور على الفاتورة في الذاكرة المحلية!', 'error');
         return;
     }
 
+    document.getElementById('editInvoiceNumber').value = data.invoice_number || '';
+    document.getElementById('editInvoiceCustomerId').value = data.customer_id || '';
+    document.getElementById('editInvoiceShippingDestinationId').value = data.shipping_destination_id || '';
+    document.getElementById('editInvoiceShippingAddressText').value = data.shipping_address_text || '';
+    document.getElementById('editInvoiceCommissionId').value = data.commission_id || '';
+    document.getElementById('editInvoiceDate').value = data.invoice_date || '';
+    document.getElementById('editPricePerCbmPreview').value = data.Price_Per_CBM ?? '';
+
+    currentEditingInvoiceId = uuid;
+    document.getElementById('editInvoiceModal').classList.remove('hidden');
+}
+
+// تحديث الفاتورة (تحديث فوري مباشر)
+async function updateEditedInvoiceData(e) {
+    e.preventDefault();
+
+    if (!currentEditingInvoiceId) return;
+
     const submitBtn = e.target.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.innerText = 'جاري التحديث...';
-    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <svg class="animate-spin h-5 w-5 text-white inline-block ml-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            جاري التحديث...
+        `;
+        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    }
 
     const payload = {
-        
         customer_id: document.getElementById('editInvoiceCustomerId').value,
         shipping_destination_id: document.getElementById('editInvoiceShippingDestinationId').value,
         shipping_address_text: document.getElementById('editInvoiceShippingAddressText').value.trim(),
@@ -268,73 +373,56 @@ async function updateEditedInvoiceData(e) {
     const invoiceDate = document.getElementById('editInvoiceDate').value;
     payload.invoice_date = invoiceDate || null;
 
+    const toast = showToast('جاري حفظ التعديلات...', 'info');
+
     try {
-        // لا نرسل Price_Per_CBM أيضا في التعديل.
-        const { error } = await _supabase
+        const { data, error } = await _supabase
             .from('invoices')
             .update(payload)
-            .eq('id', targetId);
+            .eq('id', currentEditingInvoiceId)
+            .select()
+            .single();
 
         if (error) throw error;
 
-        alert('تم تحديث الفاتورة بنجاح ✅');
-        closeEditInvoiceModal();
-        checkAndLoadInvoices();
-    } catch (err) {
-        console.error('فشل التحديث:', err.message);
-        alert('حدث خطأ أثناء التحديث: ' + err.message);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerText = 'حفظ التعديلات';
-        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
-}
-
-// نظام إشعارات ذكي لترتيب التنبيهات فوق بعضها في حالة الحذف المتعدد
-function showToast(message, type = 'info') {
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        container.className = 'fixed bottom-4 right-4 flex flex-col gap-2 z-[9999] max-w-sm select-none';
-        document.body.appendChild(container);
-    }
-    const toast = document.createElement('div');
-    toast.className = `px-5 py-3 rounded-xl shadow-2xl text-white font-bold flex items-center gap-3 transition-all duration-300 transform translate-y-2 opacity-0`;
-    if (type === 'success') toast.classList.add('bg-green-600');
-    else if (type === 'error') toast.classList.add('bg-red-600');
-    else toast.classList.add('bg-blue-600', 'animate-bounce');
-    toast.innerHTML = message;
-    container.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.remove('translate-y-2', 'opacity-0');
-    }, 10);
-    return {
-        update: (newMessage, newType) => {
-            toast.className = `px-5 py-3 rounded-xl shadow-2xl text-white font-bold flex items-center gap-3 transition-all duration-300`;
-            if (newType === 'success') toast.classList.add('bg-green-600');
-            else if (newType === 'error') toast.classList.add('bg-red-600');
-            else toast.classList.add('bg-blue-600');
-            toast.innerHTML = newMessage;
-        },
-        remove: () => {
-            toast.classList.add('translate-y-2', 'opacity-0');
-            setTimeout(() => toast.remove(), 300);
+        // تحديث الذاكرة المحلية
+        const index = invoices.findIndex(inv => inv.id === currentEditingInvoiceId);
+        if (index !== -1) {
+            invoices[index] = data;
         }
-    };
+
+        // تحديث السطر محلياً (Optimistic UI)
+        const existingRow = document.getElementById(`invoice-row-${currentEditingInvoiceId}`);
+        if (existingRow) {
+            const newRow = createInvoiceRow(data);
+            existingRow.replaceWith(newRow);
+            
+            // ومضة خضراء سريعة لتأكيد التعديل بصرياً
+            newRow.classList.add('bg-green-100');
+            setTimeout(() => newRow.classList.remove('bg-green-100'), 1000);
+        }
+
+        closeEditInvoiceModal();
+        toast.update('🎉 تم تحديث الفاتورة بنجاح!', 'success');
+        setTimeout(() => toast.remove(), 3000);
+    } catch (err) {
+        console.error('فشل التحديث:', err);
+        toast.update(`❌ فشل التحديث: ${err.message || 'خطأ غير معروف'}`, 'error');
+        setTimeout(() => toast.remove(), 4000);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'حفظ التعديلات';
+            submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+        }
+    }
 }
 
+// حذف فاتورة (تحديث فوري مباشر)
 async function deleteInvoice(uuid) {
-    if (!confirm('هل أنت متأكد من حذف هذه الفاتورة؟')) return;
+    if (!confirm('هل أنت متأكد من حذف هذه الفاتورة نهائياً؟')) return;
 
-    // 1. إنشاء وإظهار تنبيه الحذف المتحرك فوراً لإشعار المستخدم بالعملية الجارية
-    const toast = showToast(`
-        <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        جاري حذف الفاتورة حالياً...
-    `);
+    const toast = showToast('جاري حذف الفاتورة حالياً...', 'info');
 
     try {
         const { error } = await _supabase
@@ -344,18 +432,24 @@ async function deleteInvoice(uuid) {
 
         if (error) throw error;
 
-        // 2. تحديث قائمة الفواتير
-        await checkAndLoadInvoices();
+        // تحديث الذاكرة المحلية
+        invoices = invoices.filter(inv => inv.id !== uuid);
 
-        // 3. عرض رسالة النجاح وتعديل مظهر التنبيه للون الأخضر الأنيق
-        toast.update('🎉 تم حذف الفاتورة بنجاح!', 'success');
+        // إخفاء السطر من الجدول بصرياً
+        const row = document.getElementById(`invoice-row-${uuid}`);
+        if (row) {
+            row.classList.add('opacity-0', 'scale-95');
+            setTimeout(() => {
+                row.remove();
+                if (invoices.length === 0) renderInvoicesTable();
+            }, 300);
+        }
+
+        toast.update('🗑️ تم حذف الفاتورة بنجاح!', 'success');
         setTimeout(() => toast.remove(), 2500);
-
     } catch (err) {
-        console.error('فشل الحذف:', err.message);
-        
-        // 4. عرض رسالة الفشل باللون الأحمر
-        toast.update('❌ فشل الحذف: ' + (err.message || 'حدث خطأ ما'), 'error');
+        console.error('فشل الحذف:', err);
+        toast.update(`❌ فشل الحذف: ${err.message || 'حدث خطأ ما'}`, 'error');
         setTimeout(() => toast.remove(), 4000);
     }
 }
@@ -367,12 +461,16 @@ if (editInvoiceForm) {
 
 const invoicePeriodFilter = document.getElementById('invoicePeriodFilter');
 if (invoicePeriodFilter) {
-    invoicePeriodFilter.addEventListener('change', checkAndLoadInvoices);
+    invoicePeriodFilter.addEventListener('change', () => {
+        handleFilterChange();
+        checkAndLoadInvoices();
+    });
 }
 
 const invoiceSearchInput = document.getElementById('invoiceSearchInput');
 if (invoiceSearchInput) {
-    invoiceSearchInput.addEventListener('input', checkAndLoadInvoices);
+    invoiceSearchInput.addEventListener('input', handleFilterChange);
 }
 
+// تحميل الفواتير عند فتح الصفحة
 checkAndLoadInvoices();
