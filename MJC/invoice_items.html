@@ -171,7 +171,8 @@
                 </svg>
                 <span>استيراد من Excel</span>
             </label>
-            <input type="file" id="excelImportInput" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleExcelFileSelected(event)">
+            <input type="file" id="excelImportInput" accept=".xlsx,.xls,.csv" class="hidden"
+                onchange="handleExcelFileSelected(event)">
         </div>
 
         <div class="bg-white rounded-xl shadow-lg overflow-x-auto" dir="ltr">
@@ -685,7 +686,9 @@
             </div>
 
             <!-- تحذيرات التعيين إذا وجدت أعمدة لم تُعرَّف -->
-            <div id="excelImportWarnings" class="hidden mx-5 mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm text-right"></div>
+            <div id="excelImportWarnings"
+                class="hidden mx-5 mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm text-right">
+            </div>
 
             <!-- جدول المعاينة -->
             <div class="flex-1 overflow-auto p-5">
