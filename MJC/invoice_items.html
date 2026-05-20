@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="invoice_items.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Handsontable Library -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" />
 </head>
 
 <body class="bg-gray-100 p-8">
@@ -153,14 +157,6 @@
                 <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
                 <span id="filterBtnText">عرض العناصر النشطة فقط</span>
             </button>
-            <button type="button" id="reorderItemsBtn" onclick="reorderInvoiceItems()"
-                class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-[#203764] hover:bg-[#1a2e54] text-white transition-all duration-200 shadow-sm active:scale-95">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 11H19"></path>
-                </svg>
-                <span>إعادة ترتيب العناصر</span>
-            </button>
 
             <!-- زر استيراد Excel -->
             <label for="excelImportInput" id="excelImportBtn"
@@ -173,59 +169,19 @@
             </label>
             <input type="file" id="excelImportInput" accept=".xlsx,.xls,.csv" class="hidden"
                 onchange="handleExcelFileSelected(event)">
+
+            <!-- زر إضافة سطر جديد -->
+            <button type="button" onclick="addNewRowToDatabase()"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 shadow-sm active:scale-95 select-none mr-auto">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                <span>إضافة سطر جديد</span>
+            </button>
         </div>
 
-        <div class="bg-white rounded-xl shadow-lg overflow-x-auto" dir="ltr">
-            <table class="w-full text-left min-w-[1400px]" dir="ltr">
-                <thead class="bg-gray-50 border-b text-left text-xs whitespace-nowrap">
-                    <tr>
-                        <th class="p-3 text-white font-bold bg-[#5B9BD5] border border-gray-300">Item</th>
-                        <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Client Photo</th>
-                        <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Design</th>
-                        <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Dieline</th>
-                        <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Design details</th>
-                        <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Size</th>
-                        <th class="p-3 text-white font-bold bg-[#203764] border border-gray-300">Specifications</th>
-                        <th class="p-3 text-black font-bold bg-[#F8CBAD] border border-gray-300">ProductID</th>
-                        <th class="p-3 text-black font-bold bg-[#F8CBAD] border border-gray-300">Product Image</th>
-                        <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Sample</th>
-                        <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Production</th>
-                        <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">MOQ</th>
-                        <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Unit</th>
-                        <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Factory price</th>
-                        <th class="p-3 text-black font-bold bg-[#8FAADC] border border-gray-300">Total Amount</th>
-                        <th class="p-3 text-white font-bold bg-[#C00000] border border-gray-300">Shipping Price/Unit
-                        </th>
-                        <th class="p-3 text-white font-bold bg-[#C00000] border border-gray-300">Total Shipping</th>
-                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">Quantity/CTN</th>
-                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">CTN</th>
-                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">GW/CTN KG</th>
-                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">L</th>
-                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">W</th>
-                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">H</th>
-                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">CBM/CTN</th>
-                        <th class="p-3 text-white font-bold bg-[#BF9000] border border-gray-300">Total CBM</th>
-                        <th class="p-3 text-black font-bold bg-[#D9D9D9] border border-gray-300">place</th>
-                        <th class="p-3 text-black font-bold bg-[#D9D9D9] border border-gray-300">status</th>
-                        <th class="p-3 text-black font-bold bg-[#D9D9D9] border border-gray-300 text-left">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="invoiceItemsTableBody"></tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="50" class="p-4 border-t border-gray-100 bg-gray-50/50">
-                            <button onclick="addNewBlankInvoiceItem()"
-                                class="w-full bg-blue-50 border-2 border-blue-200 border-dashed text-blue-600 hover:bg-blue-100 hover:border-blue-300 py-3 rounded-xl font-bold transition duration-200 flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 4v16m8-8H4"></path>
-                                </svg>
-                                إضافة عنصر جديد
-                            </button>
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
+        <div class="bg-white rounded-xl shadow-lg p-2" dir="rtl">
+            <div id="excelGrid" class="w-full h-[600px] overflow-hidden rounded-lg custom-scrollbar"></div>
         </div>
 
         <!-- أزرار الإجراءات تحت الجدول -->
@@ -266,7 +222,7 @@
 
     <!-- Product Details Modal (نافذة عرض بيانات المنتج) -->
     <div id="productDetailsModal"
-        class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+        class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden relative">
             <button type="button" onclick="closeProductDetailsModal()"
                 class="absolute top-4 left-4 bg-gray-200 rounded-full p-2 text-gray-700 hover:bg-gray-300 transition z-10 w-8 h-8 flex items-center justify-center font-bold">X</button>
@@ -443,7 +399,7 @@
       - id="modalPreviewImage": هو وسم الصورة الذي نقوم بتغيير الرابط (src) الخاص به من خلال الجافاسكريبت ليعرض الصورة التي تم الضغط عليها.
     -->
     <div id="imagePreviewModal"
-        class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] p-4">
+        class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9999] p-4">
         <div class="relative bg-transparent rounded-xl max-w-4xl w-full">
             <button type="button" onclick="closeImageModal()"
                 class="absolute top-4 left-4 bg-white rounded-full p-2 shadow-md text-gray-700 hover:bg-gray-100 z-10 w-10 h-10 flex items-center justify-center font-bold text-xl leading-none">X</button>
@@ -454,7 +410,7 @@
 
     <!-- مودال اختيار وتغيير المنتج الفاخر -->
     <div id="productSelectorModal"
-        class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
         <div
             class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-3xl max-h-[85vh] flex flex-col relative border border-gray-100 text-right">
             <!-- Close Button -->
@@ -717,7 +673,7 @@
 
     <script src="App.js"></script>
     <script src="excel_import.js"></script>
-    <script src="invoice_items.js?v=4.1"></script>
+    <script src="invoice_items_hot.js?v=20.0"></script>
 </body>
 
 </html>
