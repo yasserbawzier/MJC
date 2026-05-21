@@ -1,0 +1,38 @@
+/* invoices.css - أنماط مخصصة لصفحة إدارة الفواتير */
+
+/* نظام الإشعارات الذكي (Toasts) */
+#toast-container {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 9999;
+    max-width: 24rem;
+    user-select: none;
+}
+
+.toast-item {
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.3s;
+    text-align: right;
+    direction: rtl;
+}
+
+.toast-item.success { background-color: #16a34a; } /* green-600 */
+.toast-item.error { background-color: #dc2626; } /* red-600 */
+.toast-item.info { background-color: #2563eb; } /* blue-600 */
+.toast-item.info.animate-bounce { animation: bounce 1s infinite; }
+
+.toast-item.hidden-toast {
+    transform: translateY(0.5rem);
+    opacity: 0;
+}
