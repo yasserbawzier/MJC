@@ -8,32 +8,14 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="../css/style.css">
-    <link rel="stylesheet" href="../css/invoice_items.css">
+    <link rel="stylesheet" href="../css/invoice_items.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Handsontable Library -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" />
     
-    <style>
-        /* إبراز حدود الجدول بشكل أقوى */
-        .custom-ht th, 
-        .custom-ht td {
-            border-right: 1px solid #cbd5e1 !important;
-            border-bottom: 1px solid #cbd5e1 !important;
-        }
-        .custom-ht th {
-            border-top: 1px solid #cbd5e1 !important;
-            border-left: 1px solid #cbd5e1 !important;
-        }
 
-        /* فئات ألوان الباستيل للصفوف والخلايا */
-        .ht-bg-red { background-color: #fee2e2 !important; color: #991b1b !important; }
-        .ht-bg-green { background-color: #dcfce7 !important; color: #166534 !important; }
-        .ht-bg-yellow { background-color: #fef9c3 !important; color: #854d0e !important; }
-        .ht-bg-blue { background-color: #dbeafe !important; color: #1e40af !important; }
-        .ht-bg-gray { background-color: #f1f5f9 !important; color: #475569 !important; }
-    </style>
 </head>
 
 <body class="bg-gray-100 p-8">
@@ -42,7 +24,7 @@
             <div class="space-x-3">
                 <a href="invoices.html"
                     class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 inline-block">رجوع للفواتير</a>
-                <a href="../index.html"
+                <a href="../../index.html"
                     class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 inline-block">الرئيسية</a>
             </div>
         </div>
@@ -198,6 +180,26 @@
                 </svg>
                 <span>إضافة سطر جديد</span>
             </button>
+        </div>
+
+        <!-- شريط أدوات التنسيق السريع (Toolbar) -->
+        <div id="richTextToolbar" class="mb-2 bg-white rounded-lg shadow-sm border border-gray-200 p-2 flex gap-2 items-center opacity-50 pointer-events-none transition-opacity duration-300" dir="rtl">
+            <span class="text-sm font-bold text-gray-500 mr-2 border-l pl-3">تلوين النص:</span>
+            
+            <button type="button" onmousedown="applyInlineStyle('foreColor', '#dc2626', event)" class="w-6 h-6 rounded-full bg-red-600 hover:ring-2 ring-offset-1 ring-red-400 transition" title="أحمر"></button>
+            
+            <div class="h-6 w-px bg-gray-300 mx-2"></div>
+            
+            <span class="text-sm font-bold text-gray-500 border-l pl-3">تلوين التمييز:</span>
+            <button type="button" onmousedown="applyInlineStyle('backColor', '#fee2e2', event)" class="w-6 h-6 rounded border border-gray-300 bg-red-100 hover:ring-2 ring-offset-1 ring-red-300 transition" title="خلفية حمراء"></button>
+            <button type="button" onmousedown="applyInlineStyle('backColor', '#dcfce7', event)" class="w-6 h-6 rounded border border-gray-300 bg-green-100 hover:ring-2 ring-offset-1 ring-green-300 transition" title="خلفية خضراء"></button>
+            <button type="button" onmousedown="applyInlineStyle('backColor', '#fef9c3', event)" class="w-6 h-6 rounded border border-gray-300 bg-yellow-100 hover:ring-2 ring-offset-1 ring-yellow-300 transition" title="خلفية صفراء"></button>
+            
+            <div class="h-6 w-px bg-gray-300 mx-2"></div>
+            
+            <button type="button" onmousedown="applyInlineStyle('removeFormat', null, event)" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded border transition">إزالة التنسيق</button>
+            
+            <span class="mr-auto text-xs text-gray-400">انقر مرتين على الخلية لتفعيل الشريط</span>
         </div>
 
         <div class="bg-white rounded-xl shadow-lg p-2" dir="rtl">

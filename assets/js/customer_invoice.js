@@ -151,7 +151,7 @@ async function loadCustomerInvoiceData() {
             { data: productsData, error: productsError }
         ] = await Promise.all([
             _supabase.from('invoices').select('*, customers(customer_custom_id, full_name, phone)').eq('id', currentInvoiceId).single(),
-            _supabase.from('invoice_items').select('id, product_id, invoice_id, status, created_at, factory_price_per_unit, quantity, shipping_price_per_unit, fixed_commission_rate, qty_per_ctn, CTN, gw_per_ctn_kg, length_cm, width_cm, height_cm, size, specifications, sample, production, unit_type, design_details').eq('invoice_id', currentInvoiceId).eq('status', true).order('created_at', { ascending: true }),
+            _supabase.from('invoice_items').select('id, product_id, invoice_id, status, created_at, factory_price_per_unit, quantity, shipping_price_per_unit, fixed_commission_rate, qty_per_ctn, CTN, gw_per_ctn_kg, length_cm, width_cm, height_cm, size, specifications, sample, production, unit_type').eq('invoice_id', currentInvoiceId).eq('status', true).order('created_at', { ascending: true }),
             _supabase.from('products').select('id, product_name, product_custom_id, product_image_url')
         ]);
 

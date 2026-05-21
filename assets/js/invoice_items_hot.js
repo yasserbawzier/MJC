@@ -238,7 +238,7 @@ function photoRenderer(instance, td, row, col, prop, value, cellProperties) {
     // إفراغ الخلية بشكل آمن
     Handsontable.dom.empty(td);
     td.style.padding = '4px';
-    td.className = 'htCenter htMiddle';
+    td.className = cellProperties.className || 'htCenter htMiddle';
 
     if (photoUrl) {
         const wrapper = document.createElement('div');
@@ -291,7 +291,7 @@ function productImageRenderer(instance, td, row, col, prop, value, cellPropertie
     Handsontable.renderers.BaseRenderer.apply(this, arguments);
     Handsontable.dom.empty(td);
     td.style.padding = '4px';
-    td.className = 'htCenter htMiddle';
+    td.className = cellProperties.className || 'htCenter htMiddle';
 
     const itemsToRender = showOnlyActive ? invoiceItems.filter(item => item.status === true) : invoiceItems;
     const item = itemsToRender[row];
@@ -326,7 +326,7 @@ function productIdRenderer(instance, td, row, col, prop, value, cellProperties) 
     const item = itemsToRender[row];
     if (!item) return;
 
-    td.className = 'htCenter htMiddle font-bold';
+    td.className = cellProperties.className ? (cellProperties.className + ' font-bold') : 'htCenter htMiddle font-bold';
 
     const product = getProductById(item.product_id);
     const productCustomId = product ? product.product_custom_id : (value || '-');
@@ -354,7 +354,7 @@ function actionsRenderer(instance, td, row, col, prop, value, cellProperties) {
     const item = itemsToRender[row];
     if (!item) return;
 
-    td.className = 'htCenter htMiddle';
+    td.className = cellProperties.className || 'htCenter htMiddle';
 
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -466,6 +466,188 @@ async function saveMergeState(cellRange, isMerge) {
     } catch (err) {
         console.error('Error saving merge state:', err.message);
         showToast('❌ فشل حفظ دمج الخلايا في قاعدة البيانات: ' + err.message, 'error');
+    }
+}
+
+async function saveStyleState(cellRange, styleType, colorClass) {
+    const itemsToRender = showOnlyActive ? invoiceItems.filter(item => item.status === true) : invoiceItems;
+    
+    const fromRow = cellRange.from.row;
+    const toRow = cellRange.to.row;
+    const fromCol = cellRange.from.col;
+    const toCol = cellRange.to.col;
+
+    const columnsConfig = hotInstance.getSettings().columns;
+    if (!columnsConfig) return;
+
+    const dbUpdates = [];
+
+    for (let r = Math.min(fromRow, toRow); r <= Math.max(fromRow, toRow); r++) {
+        const item = hotInstance.getSourceDataAtRow(r);
+        if (!item || item.is_summary) continue;
+
+        let meta = item.merge_metadata;
+        if (typeof meta === 'string') {
+            try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+        }
+        if (!meta || typeof meta !== 'object') meta = {};
+        
+        let changed = false;
+
+        for (let c = Math.min(fromCol, toCol); c <= Math.max(fromCol, toCol); c++) {
+            const colDef = columnsConfig[c];
+            if (!colDef) continue;
+            const colName = colDef.data;
+            
+            if (!meta[colName]) meta[colName] = {};
+            
+            if (styleType === 'bg') {
+                meta[colName].bg = colorClass;
+            } else if (styleType === 'color') {
+                meta[colName].color = colorClass;
+            }
+            changed = true;
+        }
+
+        if (changed) {
+            item.merge_metadata = meta;
+            dbUpdates.push({ id: item.id, payload: { merge_metadata: meta } });
+        }
+    }
+
+    if (dbUpdates.length > 0) {
+        try {
+            console.log('Sending dbUpdates:', dbUpdates);
+            await Promise.all(dbUpdates.map(upd => 
+                _supabase.from('invoice_items').update(upd.payload).eq('id', upd.id)
+            ));
+            
+            // تحديث الجدول بشكل أقوى لضمان تغيير الكلاسات
+            hotInstance.render();
+            showToast('تم تطبيق اللون بنجاح', 'success');
+            console.log('Saved style state successfully!');
+        } catch (err) {
+            console.error('Error saving style state:', err.message);
+            showToast('❌ فشل حفظ الألوان في قاعدة البيانات: ' + err.message, 'error');
+        }
+    } else {
+        console.log('No dbUpdates generated');
+    }
+}
+
+// -------------------------------------------------------------
+// محرر النصوص المباشر المخصص (Inline Rich Text Editor)
+// -------------------------------------------------------------
+window.applyInlineStyle = function(command, value, event) {
+    if (event) event.preventDefault(); // لمنع فقدان التركيز (Focus)
+    
+    if (command === 'removeFormat') {
+        document.execCommand('removeFormat', false, null);
+        document.execCommand('foreColor', false, '#000000'); // إجبار اللون ليكون أسود
+        document.execCommand('backColor', false, 'transparent'); // إزالة لون التمييز
+    } else {
+        document.execCommand(command, false, value);
+    }
+};
+
+class RichTextEditor extends Handsontable.editors.BaseEditor {
+    init() {
+        this.DIV = document.createElement('div');
+        this.DIV.setAttribute('contenteditable', 'true');
+        this.DIV.className = 'handsontableInput custom-ht-editor';
+        this.DIV.style.position = 'absolute';
+        this.DIV.style.display = 'none';
+        this.DIV.style.zIndex = '9999';
+        this.DIV.style.background = '#fff';
+        this.DIV.style.padding = '8px';
+        this.DIV.style.border = '2px solid #3b82f6';
+        this.DIV.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+        this.DIV.style.outline = 'none';
+        this.DIV.style.minWidth = '200px';
+        this.DIV.style.minHeight = '60px';
+        this.DIV.style.direction = 'rtl';
+        this.DIV.style.whiteSpace = 'pre-wrap';
+        this.DIV.style.overflowY = 'auto';
+        this.DIV.style.maxHeight = '300px';
+
+        // منع إغلاق المحرر عند الضغط على أزرار التنسيق
+        this.DIV.addEventListener('mousedown', function(event) {
+            event.stopPropagation();
+        });
+        
+        // منع مفتاح Enter من إغلاق المحرر إذا تم الضغط مع Shift أو Alt
+        this.DIV.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && (event.shiftKey || event.altKey)) {
+                event.stopPropagation(); // يمنع إرسال الحدث إلى الجدول (يمنع الحفظ والإغلاق)
+                document.execCommand('insertLineBreak');
+                event.preventDefault();
+            }
+            // إذا كان Enter لوحده، سيتم إرسال الحدث للجدول وسيقوم بإغلاق المحرر وحفظ القيمة كالمعتاد
+        });
+    }
+
+    prepare(row, col, prop, td, originalValue, cellProperties) {
+        super.prepare(row, col, prop, td, originalValue, cellProperties);
+        // نربط العنصر بجسم الصفحة (document.body) بدلاً من الجدول لضمان دقة الإحداثيات
+        if (!this.DIV.parentNode) {
+            document.body.appendChild(this.DIV);
+        }
+    }
+
+    getValue() {
+        return this.DIV.innerHTML;
+    }
+
+    setValue(value) {
+        this.DIV.innerHTML = value || '';
+    }
+
+    open() {
+        // نستخدم getBoundingClientRect للحصول على الإحداثيات الدقيقة 100% للخلية على الشاشة
+        const td = this.hot.getCell(this.row, this.col);
+        const rect = td.getBoundingClientRect();
+        const style = this.DIV.style;
+        
+        style.top = `${rect.top + window.scrollY}px`;
+        style.left = `${rect.left + window.scrollX}px`;
+        style.width = `${rect.width}px`;
+        style.minHeight = `${Math.max(rect.height, 60)}px`;
+        style.display = '';
+        
+        // إظهار شريط الأدوات العلوي
+        const toolbar = document.getElementById('richTextToolbar');
+        if (toolbar) {
+            toolbar.style.opacity = '1';
+            toolbar.style.pointerEvents = 'auto';
+        }
+
+        // نقل التركيز إلى المربع ووضع المؤشر في النهاية
+        setTimeout(() => {
+            this.DIV.focus();
+            if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined" && this.DIV.childNodes.length > 0) {
+                const range = document.createRange();
+                range.selectNodeContents(this.DIV);
+                range.collapse(false);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }, 10);
+    }
+
+    close() {
+        this.DIV.style.display = 'none';
+        
+        // إخفاء شريط الأدوات العلوي
+        const toolbar = document.getElementById('richTextToolbar');
+        if (toolbar) {
+            toolbar.style.opacity = '0.5';
+            toolbar.style.pointerEvents = 'none';
+        }
+    }
+
+    focus() {
+        this.DIV.focus();
     }
 }
 
@@ -598,19 +780,19 @@ function renderHandsontable() {
             'GW/CTN KG', 'L', 'W', 'H', 'CBM/CTN', 'Total CBM', 'place', 'status', 'Actions'
         ],
         columns: [
-            { data: 'item_name', type: 'text' },
+            { data: 'item_name', renderer: 'html', editor: RichTextEditor },
             { data: 'client_photo_url', renderer: photoRenderer, readOnly: true },
             { data: 'design_photo_url', renderer: photoRenderer, readOnly: true },
             { data: 'dieline_photo_url', renderer: photoRenderer, readOnly: true },
-            { data: 'design_details', type: 'text' },
-            { data: 'size', type: 'text' },
-            { data: 'specifications', type: 'text' },
+            { data: 'design_details', renderer: 'html', editor: RichTextEditor },
+            { data: 'size', renderer: 'html', editor: RichTextEditor },
+            { data: 'specifications', renderer: 'html', editor: RichTextEditor },
             { data: 'product_id', renderer: productIdRenderer, readOnly: true },
             { data: 'product_image_url', renderer: productImageRenderer, readOnly: true },
-            { data: 'sample', type: 'text' },
-            { data: 'production', type: 'text' },
+            { data: 'sample', renderer: 'html', editor: RichTextEditor },
+            { data: 'production', renderer: 'html', editor: RichTextEditor },
             { data: 'quantity', type: 'numeric' },
-            { data: 'unit_type', type: 'text' },
+            { data: 'unit_type', renderer: 'html', editor: RichTextEditor },
             { data: 'factory_price_per_unit', type: 'numeric' },
             { data: 'total_factory_price', type: 'numeric', readOnly: true },
             { data: 'shipping_price_per_unit', type: 'numeric' },
@@ -623,7 +805,7 @@ function renderHandsontable() {
             { data: 'height_cm', type: 'numeric' },
             { data: 'cbm_per_ctn', type: 'numeric', readOnly: true },
             { data: 'total_cbm', type: 'numeric', readOnly: true },
-            { data: 'place', type: 'text' },
+            { data: 'place', renderer: 'html', editor: RichTextEditor },
             { data: 'status', type: 'checkbox' },
             { data: 'actions', renderer: actionsRenderer, readOnly: true }
         ],
@@ -673,6 +855,35 @@ function renderHandsontable() {
         dropdownMenu: true,
         contextMenu: {
             items: {
+                "bgColor": {
+                    name: 'لون خلفية الخلية 🎨',
+                    submenu: {
+                        items: [
+                            { key: "bgColor:red", name: 'أحمر (Red)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-red'); } },
+                            { key: "bgColor:green", name: 'أخضر (Green)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-green'); } },
+                            { key: "bgColor:blue", name: 'أزرق (Blue)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-blue'); } },
+                            { key: "bgColor:yellow", name: 'أصفر (Yellow)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-yellow'); } },
+                            { key: "bgColor:gray", name: 'رمادي (Gray)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-gray'); } },
+                            { key: "bgColor:brown", name: 'بني فاتح (Light Brown)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-brown'); } },
+                            { key: "bgColor:clear", name: 'إزالة اللون (شفاف)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-none'); } }
+                        ]
+                    }
+                },
+                "textColor": {
+                    name: 'لون النص 🔤',
+                    submenu: {
+                        items: [
+                            { key: "textColor:red", name: 'أحمر (Red)', callback: function(key, selection) { saveStyleState(selection[0], 'color', 'ht-text-red'); } },
+                            { key: "textColor:green", name: 'أخضر (Green)', callback: function(key, selection) { saveStyleState(selection[0], 'color', 'ht-text-green'); } },
+                            { key: "textColor:blue", name: 'أزرق (Blue)', callback: function(key, selection) { saveStyleState(selection[0], 'color', 'ht-text-blue'); } },
+                            { key: "textColor:brown", name: 'بني (Brown)', callback: function(key, selection) { saveStyleState(selection[0], 'color', 'ht-text-brown'); } },
+                            { key: "textColor:black", name: 'أسود (Black)', callback: function(key, selection) { saveStyleState(selection[0], 'color', 'ht-text-black'); } },
+                            { key: "textColor:white", name: 'أبيض (White)', callback: function(key, selection) { saveStyleState(selection[0], 'color', 'ht-text-white'); } },
+                            { key: "textColor:clear", name: 'إزالة اللون (الافتراضي)', callback: function(key, selection) { saveStyleState(selection[0], 'color', 'ht-text-none'); } }
+                        ]
+                    }
+                },
+                "---------": {},
                 "mergeCells": { name: "دمج / إلغاء دمج الخلايا (Merge/Unmerge)" },
                 "copy": { name: "نسخ (Copy)" },
                 "cut": { name: "قص (Cut)" },
@@ -683,10 +894,31 @@ function renderHandsontable() {
         },
         cells: function(row, col, prop) {
             var cellProperties = {};
-            if (this.instance.getDataAtRowProp(row, 'is_summary')) {
-                cellProperties.readOnly = true;
-                cellProperties.className = 'htCenter htMiddle !bg-slate-200 !text-black !font-extrabold';
+            let customClasses = ['htCenter', 'htMiddle', 'custom-ht'];
+            let rowData = this.instance.getSourceDataAtRow(row);
+            
+            if (rowData && rowData.merge_metadata) {
+                let meta = rowData.merge_metadata;
+                if (typeof meta === 'string') {
+                    try { meta = JSON.parse(meta); } catch (e) { meta = null; }
+                }
+                if (meta && typeof meta === 'object' && meta[prop]) {
+                    if (meta[prop].bg && meta[prop].bg !== 'ht-bg-none') {
+                        customClasses.push(meta[prop].bg);
+                    }
+                    if (meta[prop].color && meta[prop].color !== 'ht-text-none') {
+                        customClasses.push(meta[prop].color);
+                    }
+                }
             }
+            
+            if (rowData && rowData.is_summary) {
+                cellProperties.readOnly = true;
+                customClasses.push('!bg-slate-200', '!text-black', '!font-extrabold');
+            }
+            
+            cellProperties.className = customClasses.join(' ');
+            
             return cellProperties;
         },
         afterMergeCells: function (cellRange, mergeParent, autoRender) {
@@ -698,6 +930,16 @@ function renderHandsontable() {
         afterChange: function (changes, source) {
             if (source === 'loadData') return;
             handleHandsontableChange(changes, source);
+        },
+        beforeCopy: function(data, coords) {
+            // تنظيف النص من أكواد HTML قبل النسخ ليظهر بشكل صحيح في Excel
+            for (let r = 0; r < data.length; r++) {
+                for (let c = 0; c < data[r].length; c++) {
+                    if (typeof data[r][c] === 'string') {
+                        data[r][c] = data[r][c].replace(/<[^>]*>?/gm, '');
+                    }
+                }
+            }
         }
     });
 

@@ -108,3 +108,32 @@ td[contenteditable="true"]:focus {
 tr {
     transition: background-color 0.2s ease;
 }
+
+/* إبراز حدود الجدول بشكل أقوى */
+.custom-ht th, 
+.custom-ht td {
+    border-right: 1px solid #cbd5e1 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+}
+.custom-ht th {
+    border-top: 1px solid #cbd5e1 !important;
+    border-left: 1px solid #cbd5e1 !important;
+}
+
+/* فئات ألوان الباستيل للصفوف والخلايا - استخدمنا !important لضمان تجاوز تنسيقات Handsontable */
+.ht-bg-red { background-color: #fee2e2 !important; }
+.ht-bg-green { background-color: #dcfce7 !important; }
+.ht-bg-yellow { background-color: #fef9c3 !important; }
+.ht-bg-blue { background-color: #dbeafe !important; }
+.ht-bg-gray { background-color: #f1f5f9 !important; }
+.ht-bg-brown { background-color: #f5ebdf !important; }
+.ht-bg-none { background-color: transparent !important; }
+
+/* فئات ألوان النصوص */
+.ht-text-red { color: #dc2626 !important; }
+.ht-text-green { color: #16a34a !important; }
+.ht-text-blue { color: #2563eb !important; }
+.ht-text-black { color: #000000 !important; }
+.ht-text-white { color: #ffffff !important; }
+.ht-text-brown { color: #8B4513 !important; }
+.ht-text-none { color: inherit !important; }
