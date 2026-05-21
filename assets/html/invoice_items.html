@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <title>عناصر الفاتورة</title>
+    <link rel="stylesheet" href="../css/tailwind.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/invoice_items.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Handsontable Library -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" />
+    
+    <style>
+        /* إبراز حدود الجدول بشكل أقوى */
+        .custom-ht th, 
+        .custom-ht td {
+            border-right: 1px solid #cbd5e1 !important;
+            border-bottom: 1px solid #cbd5e1 !important;
+        }
+        .custom-ht th {
+            border-top: 1px solid #cbd5e1 !important;
+            border-left: 1px solid #cbd5e1 !important;
+        }
+
+        /* فئات ألوان الباستيل للصفوف والخلايا */
+        .ht-bg-red { background-color: #fee2e2 !important; color: #991b1b !important; }
+        .ht-bg-green { background-color: #dcfce7 !important; color: #166534 !important; }
+        .ht-bg-yellow { background-color: #fef9c3 !important; color: #854d0e !important; }
+        .ht-bg-blue { background-color: #dbeafe !important; color: #1e40af !important; }
+        .ht-bg-gray { background-color: #f1f5f9 !important; color: #475569 !important; }
+    </style>
+</head>
+
+<body class="bg-gray-100 p-8">
+    <div class="max-w-[1800px] mx-auto">
+        <div class="mb-4 flex flex-col sm:flex-row sm:justify-between items-center gap-3">
+            <div class="space-x-3">
+                <a href="invoices.html"
+                    class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 inline-block">رجوع للفواتير</a>
+                <a href="../index.html"
+                    class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 inline-block">الرئيسية</a>
+            </div>
+        </div>
+
+        <!-- رأس لوحة التحكم للتنقل السريع ومعلومات الفاتورة المحدثة -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6" dir="rtl">
+            <div
+                class="flex flex-col md:flex-row justify-between items-center pb-6 border-b border-gray-100 gap-4 mb-6">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shadow-inner">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="text-right">
+                        <h1 class="text-2xl font-bold text-gray-800">تفاصيل الفاتورة وإدارة البنود 📦</h1>
+                        <p class="text-xs text-gray-400">لوحة تحكم تفصيلية بالمنتجات والأسعار والكراتين والشحن</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بطاقة تفاصيل معلومات الفاتورة الأنيقة المكونة من 5 أعمدة -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="space-y-1 text-right border-l border-gray-150 pl-4 last:border-0">
+                    <span class="text-xs text-gray-400 block">رقم الفاتورة / Invoice No</span>
+                    <strong id="invoiceNumberDisplay" class="text-base text-gray-800 font-extrabold">---</strong>
+                </div>
+                <div class="space-y-1 text-right border-l border-gray-150 pl-4 last:border-0">
+                    <span class="text-xs text-gray-400 block">معرف العميل / Customer ID</span>
+                    <strong id="invoiceCustomerDisplay" class="text-base text-gray-800 font-extrabold">---</strong>
+                </div>
+                <div class="space-y-1 text-right border-l border-gray-150 pl-4 last:border-0">
+                    <span class="text-xs text-gray-400 block">اسم العميل / Customer Name</span>
+                    <strong id="invoiceCustomerNameDisplay" class="text-base text-gray-800 font-extrabold">---</strong>
+                </div>
+                <div class="space-y-1 text-right border-l border-gray-150 pl-4 last:border-0">
+                    <span class="text-xs text-gray-400 block">بلد وجهة الشحن / Destination</span>
+                    <strong id="invoiceShippingDestinationDisplay"
+                        class="text-base text-gray-800 font-extrabold">---</strong>
+                </div>
+                <div class="space-y-1 text-right last:border-0">
+                    <span class="text-xs text-gray-400 block">سعر الشحن للمتر المكعب / Shipping CBM Rate</span>
+                    <strong id="invoiceCbmPriceDisplay" class="text-base text-emerald-600 font-extrabold">---</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- بطاقات الإحصائيات الخمسة الفخمة (5 Statistics Cards) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6" dir="rtl">
+            <!-- 1. إجمالي كمية المنتجات -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
+                <div class="text-right">
+                    <span class="text-xs text-gray-400 font-bold block mb-1">إجمالي الكمية (MOQ)</span>
+                    <strong id="statTotalQuantity" class="text-2xl font-extrabold text-gray-800">0</strong>
+                </div>
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- 2. إجمالي الكراتين -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
+                <div class="text-right">
+                    <span class="text-xs text-gray-400 font-bold block mb-1">إجمالي الكراتين (CTN)</span>
+                    <strong id="statTotalCtn" class="text-2xl font-extrabold text-gray-800">0</strong>
+                </div>
+                <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- 3. إجمالي الحجم CBM -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
+                <div class="text-right">
+                    <span class="text-xs text-gray-400 font-bold block mb-1">إجمالي الحجم (Total CBM)</span>
+                    <strong id="statTotalCbm" class="text-2xl font-extrabold text-gray-800">0.0000</strong>
+                </div>
+                <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- 4. إجمالي شحن الطلب ($) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
+                <div class="text-right">
+                    <span class="text-xs text-gray-400 font-bold block mb-1">إجمالي شحن الطلب ($)</span>
+                    <strong id="statTotalShipping" class="text-2xl font-extrabold text-red-600">$0.00</strong>
+                </div>
+                <div class="p-3 bg-red-50 text-red-600 rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- 5. إجمالي سعر الطلب من المصنع ($) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
+                <div class="text-right">
+                    <span class="text-xs text-gray-400 font-bold block mb-1">إجمالي سعر المصنع ($)</span>
+                    <strong id="statTotalFactory" class="text-2xl font-extrabold text-emerald-600">$0.00</strong>
+                </div>
+                <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- زر تصفية وإعادة ترتيب العناصر النشطة بين معلومات الفاتورة والجدول -->
+        <div class="mb-4 flex justify-start select-none items-center gap-3" dir="ltr">
+            <button type="button" id="toggleActiveFilterBtn" onclick="toggleActiveItemsFilter()"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 shadow-sm active:scale-95">
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+                <span id="filterBtnText">عرض العناصر النشطة فقط</span>
+            </button>
+
+            <!-- زر استيراد Excel -->
+            <label for="excelImportInput" id="excelImportBtn"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all duration-200 shadow-sm active:scale-95 cursor-pointer select-none">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                </svg>
+                <span>استيراد من Excel</span>
+            </label>
+            <input type="file" id="excelImportInput" accept=".xlsx,.xls,.csv" class="hidden"
+                onchange="handleExcelFileSelected(event)">
+
+            <!-- زر إضافة سطر جديد -->
+            <button type="button" onclick="addNewRowToDatabase()"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 shadow-sm active:scale-95 select-none mr-auto">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                <span>إضافة سطر جديد</span>
+            </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-2" dir="rtl">
+            <div id="excelGrid" class="w-full h-[600px] overflow-hidden rounded-lg custom-scrollbar"></div>
+        </div>
+
+        <!-- أزرار الإجراءات تحت الجدول -->
+        <div class="mt-6 flex justify-center gap-4">
+
+            <a id="itemDesignsLink" href="#"
+                class="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg shadow-purple-100 hover:shadow-xl hover:shadow-purple-200 hover:translate-y-[-2px] active:scale-95 transition-all duration-200 group text-base select-none">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                    </path>
+                </svg>
+                تصاميم العناصر
+            </a>
+
+            <a id="itemCommissionsLink" href="#"
+                class="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg shadow-yellow-100 hover:shadow-xl hover:shadow-yellow-200 hover:translate-y-[-2px] active:scale-95 transition-all duration-200 group text-base select-none">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                    </path>
+                </svg>
+                عمولات الفاتورة
+            </a>
+
+            <!-- زر عرض الفاتورة للعميل جاهزة للطباعة A4 -->
+            <a id="customerInvoiceLink" href="#"
+                class="flex items-center gap-2 bg-gradient-to-tr from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg shadow-emerald-100 hover:shadow-xl hover:shadow-emerald-200 hover:translate-y-[-2px] active:scale-95 transition-all duration-200 group text-base select-none">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
+                    </path>
+                </svg>
+                عرض الفاتورة للعميل 🖨️
+            </a>
+        </div>
+    </div>
+
+    <!-- Product Details Modal (نافذة عرض بيانات المنتج) -->
+    <div id="productDetailsModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden relative">
+            <button type="button" onclick="closeProductDetailsModal()"
+                class="absolute top-4 left-4 bg-gray-200 rounded-full p-2 text-gray-700 hover:bg-gray-300 transition z-10 w-8 h-8 flex items-center justify-center font-bold">X</button>
+            <div class="p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">بيانات المنتج المصنعي</h3>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="w-full md:w-1/3">
+                        <img id="modalProductImage" src="" alt="صورة المنتج"
+                            class="w-full h-auto object-cover rounded-lg border border-gray-300 shadow-sm cursor-pointer"
+                            onclick="openImageModal(this.src)">
+                        <p class="text-xs text-center text-gray-500 mt-2">اضغط على الصورة لتكبيرها</p>
+                    </div>
+                    <div class="w-full md:w-2/3 space-y-3 text-right">
+                        <div>
+                            <span class="block text-sm font-semibold text-gray-500">Product Name</span>
+                            <span id="modalProductName" class="text-lg font-bold text-gray-800">-</span>
+                        </div>
+                        <div>
+                            <span class="block text-sm font-semibold text-gray-500">Product Custom ID</span>
+                            <span id="modalProductId" class="text-gray-800">-</span>
+                        </div>
+                        <div>
+                            <span class="block text-sm font-semibold text-gray-500">Specifications</span>
+                            <span id="modalProductSpecs"
+                                class="text-gray-800 block bg-gray-50 p-2 rounded border">-</span>
+                        </div>
+                        <div>
+                            <span class="block text-sm font-semibold text-gray-500">Sample Details</span>
+                            <span id="modalProductSample"
+                                class="text-gray-800 block bg-gray-50 p-2 rounded border">-</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <span class="block text-sm font-semibold text-gray-500">MOQ</span>
+                                <span id="modalProductMoq" class="text-gray-800">-</span>
+                            </div>
+                            <div>
+                                <span class="block text-sm font-semibold text-gray-500">Days of Manufacturing</span>
+                                <span id="modalProductDays" class="text-gray-800">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for editing -->
+    <div id="editInvoiceItemModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white max-h-[80vh] overflow-y-auto">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">تعديل العنصر</h3>
+                <form id="editInvoiceItemForm" class="space-y-4">
+                    <input type="hidden" id="editInvoiceItemId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Size</label>
+                        <input id="editItemSize" name="size" type="text"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Specifications</label>
+                        <input id="editItemSpecifications" name="specifications" type="text"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">MOQ (الكمية المطلوبة)</label>
+                        <input id="editItemQuantity" name="quantity" type="number" min="0" step="1"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                        <select id="editItemUnitType" name="unit_type"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value=""></option>
+                            <option value="pc">pc</option>
+                            <option value="kg">kg</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Sample Details (العينة)</label>
+                        <input id="editItemSample" name="sample" type="text"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Production (التصنيع)</label>
+                        <input id="editItemProduction" name="production" type="text"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CTN (عدد الكراتين - اختياري)</label>
+                        <input id="editItemCtn" name="ctn" type="number" min="0" step="1"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="يُحسب تلقائياً إذا تُرك فارغاً">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Factory Price Per Unit</label>
+                        <input id="editItemFactoryPricePerUnit" name="factory_price_per_unit" type="number" min="0"
+                            step="0.01"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Qty Per Ctn</label>
+                        <input id="editItemQtyPerCtn" name="qty_per_ctn" type="number" min="0" step="1"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">GW Per Ctn KG</label>
+                        <input id="editItemGwPerCtnKg" name="gw_per_ctn_kg" type="number" min="0" step="0.01"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Length CM</label>
+                        <input id="editItemLengthCm" name="length_cm" type="number" min="0" step="0.01"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Width CM</label>
+                        <input id="editItemWidthCm" name="width_cm" type="number" min="0" step="0.01"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Height CM</label>
+                        <input id="editItemHeightCm" name="height_cm" type="number" min="0" step="0.01"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Place</label>
+                        <input id="editItemPlace" name="place" type="text"
+                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">صورة العميل</label>
+                        <input id="editItemClientPhoto" name="client_photo" type="file" accept="image/*"
+                            class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <div id="editClientPhotoPreview" class="mt-2 hidden">
+                            <img id="editClientPhotoPreviewImg" src="" alt="Client Photo"
+                                class="w-24 h-24 object-cover rounded-lg border border-gray-300" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">صورة الديزان</label>
+                        <input id="editItemDesignPhoto" name="design_photo" type="file" accept="image/*"
+                            class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <div id="editDesignPhotoPreview" class="mt-2 hidden">
+                            <img id="editDesignPhotoPreviewImg" src="" alt="Design Photo"
+                                class="w-24 h-24 object-cover rounded-lg border border-gray-300" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">صورة الديلاين</label>
+                        <input id="editItemDielinePhoto" name="dieline_photo" type="file" accept="image/*"
+                            class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <div id="editDielinePhotoPreview" class="mt-2 hidden">
+                            <img id="editDielinePhotoPreviewImg" src="" alt="Dieline Photo"
+                                class="w-24 h-24 object-cover rounded-lg border border-gray-300" />
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" onclick="closeEditModal()"
+                            class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">إلغاء</button>
+                        <button id="updateInvoiceItemButton" type="submit"
+                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">حفظ التعديلات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 
+      هذا هو الكود الخاص بالنافذة المنبثقة (Modal) التي تظهر عند الضغط على أي صورة لتكبيرها.
+      - id="imagePreviewModal": هو المعرف الذي نستخدمه في الجافاسكريبت لإظهار وإخفاء هذه النافذة.
+      - onclick="closeImageModal()": تقوم بتشغيل دالة الإغلاق عند الضغط على زر (X).
+      - id="modalPreviewImage": هو وسم الصورة الذي نقوم بتغيير الرابط (src) الخاص به من خلال الجافاسكريبت ليعرض الصورة التي تم الضغط عليها.
+    -->
+    <div id="imagePreviewModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9999] p-4">
+        <div class="relative bg-transparent rounded-xl max-w-4xl w-full">
+            <button type="button" onclick="closeImageModal()"
+                class="absolute top-4 left-4 bg-white rounded-full p-2 shadow-md text-gray-700 hover:bg-gray-100 z-10 w-10 h-10 flex items-center justify-center font-bold text-xl leading-none">X</button>
+            <img id="modalPreviewImage" src="" alt="معاينة الصورة الكبيرة"
+                class="w-full h-auto rounded-xl shadow-2xl object-contain max-h-[90vh] mx-auto">
+        </div>
+    </div>
+
+    <!-- مودال اختيار وتغيير المنتج الفاخر -->
+    <div id="productSelectorModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-3xl max-h-[85vh] flex flex-col relative border border-gray-100 text-right">
+            <!-- Close Button -->
+            <button type="button" onclick="closeProductSelectorModal()"
+                class="absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 z-10">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+
+            <h3 class="text-xl font-bold text-gray-800 text-center mb-4">ربط وتغيير منتج البند</h3>
+
+            <!-- Search Box & Add Product Button inline -->
+            <div class="mb-4 flex gap-2">
+                <div class="relative flex-1">
+                    <input type="text" id="productSelectorSearchInput" oninput="filterSelectorProducts()"
+                        placeholder="البحث برمز المنتج (Custom ID) أو الاسم..."
+                        class="w-full border border-gray-300 rounded-xl p-3 pr-10 focus:ring-2 focus:ring-blue-500 outline-none text-right dir-rtl" />
+                    <span class="absolute right-3 top-3.5 text-gray-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </span>
+                </div>
+                <button type="button" onclick="openAddProductModal()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-3 rounded-xl transition duration-150 shadow-sm active:scale-95 flex items-center gap-1.5 text-sm select-none whitespace-nowrap">
+                    <span class="text-lg font-extrabold leading-none">+</span> إضافة منتج جديد
+                </button>
+            </div>
+
+            <!-- Products Grid / List Container -->
+            <div class="flex-1 overflow-y-auto space-y-3 p-1" id="productSelectorGrid">
+                <!-- Cards will be dynamically loaded here by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال خيارات الصورة المتقدمة -->
+    <div id="photoActionsModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 max-w-full relative border border-gray-100 text-right">
+            <button type="button" onclick="closePhotoActionsModal()"
+                class="absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <h3 class="text-lg font-bold text-gray-800 text-center mb-6" id="photoActionsTitle">خيارات الصورة</h3>
+
+            <div class="space-y-4">
+                <!-- خيار العرض -->
+                <button type="button" id="viewPhotoActionBtn"
+                    class="w-full flex items-center justify-between p-4 rounded-xl border border-blue-100 bg-blue-50 hover:bg-blue-100 text-blue-900 font-semibold transition-all duration-200 group">
+                    <svg class="w-5 h-5 text-blue-400 transform group-hover:translate-x-[-4px] transition-transform"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                        </path>
+                    </svg>
+                    <span class="flex items-center gap-3">
+                        <span class="p-2 rounded-lg bg-blue-500 text-white shadow-md shadow-blue-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                                </path>
+                            </svg>
+                        </span>
+                        عرض الصورة الكبيرة
+                    </span>
+                </button>
+
+                <!-- خيار الرفع/التغيير -->
+                <button type="button" id="uploadPhotoActionBtn"
+                    class="w-full flex items-center justify-between p-4 rounded-xl border border-green-100 bg-green-50 hover:bg-green-100 text-green-900 font-semibold transition-all duration-200 group">
+                    <svg class="w-5 h-5 text-green-400 transform group-hover:translate-x-[-4px] transition-transform"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                        </path>
+                    </svg>
+                    <span class="flex items-center gap-3">
+                        <span class="p-2 rounded-lg bg-green-500 text-white shadow-md shadow-green-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                            </svg>
+                        </span>
+                        رفع صورة جديدة
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- مدخل ملف مخفي لإجراء الرفع التلقائي السريع -->
+    <input type="file" id="hiddenPhotoSelectorInput" accept="image/*" class="hidden" />
+
+    <!-- مودال إضافة منتج جديد فاخر -->
+    <div id="addProductModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-xl max-h-[90vh] flex flex-col relative border border-gray-100 text-right dir-rtl overflow-y-auto">
+            <!-- Close Button -->
+            <button type="button" onclick="closeAddProductModal()"
+                class="absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 z-10">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+
+            <h3 class="text-xl font-bold text-gray-800 text-center mb-6">إضافة منتج جديد لنظام المنتجات 📦</h3>
+
+            <form id="newProductForm" onsubmit="submitAddProduct(event)" class="space-y-4 text-right">
+                <!-- اسم المنتج -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">اسم المنتج <span
+                            class="text-red-500">*</span></label>
+                    <input type="text" id="newProductName" required placeholder="مثال: علبة كرتون فاخرة"
+                        class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none text-right" />
+                </div>
+
+
+
+                <!-- نوع المنتج -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">نوع المنتج</label>
+                    <select id="newProductTypeId"
+                        class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none text-right bg-white">
+                        <option value="">اختر نوع المنتج...</option>
+                    </select>
+                </div>
+
+                <!-- المواصفات -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">المواصفات الفنية</label>
+                    <textarea id="newProductSpecs" rows="3" placeholder="أدخل أبعاد المنتج، المواد المستخدمة..."
+                        class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none text-right resize-y"></textarea>
+                </div>
+
+                <!-- تفاصيل العينات -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">تفاصيل العينات</label>
+                    <textarea id="newProductSample" rows="2" placeholder="أدخل تفاصيل طباعة العينات أو التعديلات..."
+                        class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none text-right resize-y"></textarea>
+                </div>
+
+                <!-- MOQ و أيام التصنيع -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">أقل كمية طلب (MOQ)</label>
+                        <input type="number" id="newProductMoq" min="0" placeholder="1000"
+                            class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none text-right" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">أيام التصنيع</label>
+                        <input type="number" id="newProductDays" min="0" placeholder="15"
+                            class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none text-right" />
+                    </div>
+                </div>
+
+                <!-- ميديا المنتج -->
+                <div class="grid grid-cols-2 gap-4 border-t pt-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">صورة المنتج</label>
+                        <input type="file" id="newProductImage" accept="image/*"
+                            class="w-full text-xs text-gray-500 file:ml-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">فيديو المنتج <span
+                                class="text-gray-400 font-normal">(اختياري)</span></label>
+                        <input type="file" id="newProductVideo" accept="video/*"
+                            class="w-full text-xs text-gray-500 file:ml-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
+                    </div>
+                </div>
+
+                <!-- أزرار الحفظ والإغلاق -->
+                <div class="flex justify-end gap-3 border-t pt-4">
+                    <button type="button" onclick="closeAddProductModal()"
+                        class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-6 py-3 rounded-xl transition duration-150 select-none">
+                        إلغاء
+                    </button>
+                    <button type="submit" id="submitNewProductBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition duration-150 shadow-md shadow-blue-100 hover:shadow-lg active:scale-95 flex items-center gap-2 select-none">
+                        <svg id="submitNewProductSpinner" class="hidden animate-spin h-5 w-5 text-white" fill="none"
+                            viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        <span>حفظ وإضافة المنتج</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال معاينة استيراد Excel -->
+    <div id="excelImportModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col relative border border-gray-100">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-5 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="text-right">
+                        <h3 class="text-lg font-bold text-gray-800">معاينة بيانات Excel قبل الاستيراد</h3>
+                        <p id="excelImportRowCount" class="text-xs text-gray-400">0 صف سيتم استيراده</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeExcelImportModal()"
+                    class="text-gray-400 hover:text-gray-600 transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- تحذيرات التعيين إذا وجدت أعمدة لم تُعرَّف -->
+            <div id="excelImportWarnings"
+                class="hidden mx-5 mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm text-right">
+            </div>
+
+            <!-- جدول المعاينة -->
+            <div class="flex-1 overflow-auto p-5">
+                <table class="w-full text-sm border-collapse text-left" id="excelPreviewTable">
+                    <thead id="excelPreviewHead" class="bg-gray-50 sticky top-0"></thead>
+                    <tbody id="excelPreviewBody"></tbody>
+                </table>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="p-5 border-t border-gray-100 flex justify-end gap-3">
+                <button type="button" onclick="closeExcelImportModal()"
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-6 py-3 rounded-xl transition select-none">
+                    إلغاء
+                </button>
+                <button type="button" id="confirmExcelImportBtn" onclick="confirmExcelImport()"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 rounded-xl transition shadow-md flex items-center gap-2 select-none">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    تأكيد الاستيراد
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/App.js"></script>
+    <script src="../js/excel_import.js?v=2.0"></script>
+    <script src="../js/invoice_items_hot.js?v=21.0"></script>
+</body>
+
+</html>

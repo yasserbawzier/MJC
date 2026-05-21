@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الكتالوج الموحد للمنتجات</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="../css/tailwind.css">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'Cairo', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Custom CSS (Separated for performance) -->
+    <link rel="stylesheet" href="../css/catalog.css">
+</head>
+
+<body class="font-sans antialiased text-slate-800">
+    <div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-[1700px] mx-auto">
+            
+            <!-- شريط التنقل العلوي -->
+            <div class="mb-8 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/70 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-slate-200/60">
+                <div class="flex items-center gap-3">
+                    <div class="p-3 bg-gradient-to-tr from-amber-500 to-orange-600 rounded-xl text-white shadow-md shadow-orange-500/20">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-black text-slate-900 tracking-tight">الكتالوج الموحد للمنتجات</h1>
+                        <p class="text-xs text-slate-500 font-medium">تصفح تشكيلة منتجاتنا المميزة والمتاحة للطلب</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- لوحة الفلاتر والبحث الممتازة -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/70 p-6 mb-8">
+                <h2 class="text-sm font-extrabold text-slate-900 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 8.293A1 1 0 013 7.586V4z"></path>
+                    </svg>
+                    أدوات التصفية والبحث المتقدمة
+                </h2>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <!-- حقل البحث النصي -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-slate-500">بحث سريع</label>
+                        <div class="relative">
+                            <input type="text" id="searchInput" placeholder="ابحث باسم المنتج أو المعرف..."
+                                class="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition pr-8">
+                            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <!-- فلتر التصنيف/البلد -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-slate-500">الدولة المتاحة للشحن</label>
+                        <select id="countryFilter" class="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition cursor-pointer">
+                            <option value="">جميع الوجهات المتاحة</option>
+                        </select>
+                    </div>
+                    
+                    <!-- خيارات الترتيب والفرز -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-slate-500">ترتيب العرض</label>
+                        <select id="sortBy" class="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition cursor-pointer">
+                            <option value="created_at_desc">أحدث المنتجات المضافة</option>
+                            <option value="unit_price_desc">الأعلى سعراً</option>
+                            <option value="unit_price_asc">الأقل سعراً</option>
+                            <option value="quantity_desc">الأكثر طلباً (الكمية)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- تصفية متقدمة إضافية -->
+                <div class="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-end gap-4">
+                    <!-- عداد الإحصائيات -->
+                    <div class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg shadow-inner">
+                        عدد المنتجات المتاحة: <span id="itemsCount" class="text-orange-600 font-extrabold text-sm ml-1">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- مؤشر جاري التحميل -->
+            <div id="loader" class="flex flex-col justify-center items-center py-24 gap-4">
+                <svg class="animate-spin h-10 w-10 text-orange-500" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-slate-500 text-sm font-semibold">جاري جلب تفاصيل الكتالوج وتحليل الأسعار...</span>
+            </div>
+
+            <!-- لوحة عرض الكتالوج الرئيسية -->
+            <div id="catalogGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden">
+                <!-- سيتم إنشاء كروت المنتجات هنا تلقائياً بواسطة الكود -->
+            </div>
+            
+            <!-- رسالة عدم وجود نتائج -->
+            <div id="noResults" class="hidden flex flex-col justify-center items-center py-20 text-slate-400 gap-3">
+                <svg class="w-16 h-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h3 class="text-base font-extrabold text-slate-700">لم نجد أي منتجات تطابق خيارات البحث</h3>
+                <p class="text-xs text-slate-400">جرب تعديل خيارات التصفية أو إدخال نص بحث مختلف</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- زر السلة العائم -->
+    <div id="floatingCartBtn" class="fixed bottom-6 left-6 z-40 transition-all duration-500 translate-y-32 opacity-0">
+        <button onclick="openOrderModal()" class="flex items-center gap-3 bg-slate-900 hover:bg-slate-800 text-white px-6 py-4 rounded-full shadow-2xl hover:shadow-orange-500/20 hover:-translate-y-1 transition-all group border border-slate-700">
+            <div class="relative">
+                <svg class="w-6 h-6 text-orange-500 group-hover:text-orange-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                <span id="cartItemsCount" class="absolute -top-2 -right-3 bg-emerald-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-slate-900">0</span>
+            </div>
+            <span class="font-extrabold tracking-wide">إكمال الطلب</span>
+        </button>
+    </div>
+
+    <!-- نافذة نموذج الطلب المنبثقة (Order Modal) -->
+    <div id="orderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 px-4">
+        <div class="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden scale-95 transition-transform duration-300">
+            <!-- الهيدر -->
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                    <span class="text-2xl">📝</span> إرسال طلب جديد
+                </h2>
+                <button onclick="closeOrderModal()" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <!-- المحتوى قابل للتمرير -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-8" id="orderModalContent">
+                <!-- 1. بيانات العميل -->
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-800 mb-4 flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <span class="text-orange-500">1.</span> البيانات الشخصية ومعلومات التواصل
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">الاسم الكامل *</label>
+                            <input type="text" id="orderClientName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition" placeholder="الاسم الكامل">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">رقم الواتساب *</label>
+                            <input type="tel" id="orderClientWhatsapp" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition" placeholder="مثال: 966500000000+">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">اسم الشركة (اختياري)</label>
+                            <input type="text" id="orderClientCompany" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition" placeholder="مثال: مؤسسة الأفق">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">مجال العمل (اختياري)</label>
+                            <input type="text" id="orderClientIndustry" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition" placeholder="مثال: استيراد وتصدير...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">بلد الشحن *</label>
+                            <input type="text" id="orderClientCountry" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition" placeholder="مثال: السعودية">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">المدينة *</label>
+                            <input type="text" id="orderClientCity" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition" placeholder="مثال: الرياض">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. المنتجات المختارة -->
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-800 mb-4 flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <span class="text-orange-500">2.</span> تفاصيل المنتجات المختارة
+                    </h3>
+                    <div id="orderProductsList" class="space-y-4">
+                        <!-- سيتم إدراج المنتجات هنا بواسطة جافاسكريبت -->
+                    </div>
+                </div>
+
+                <!-- ملاحظة هامة للعميل -->
+                <div class="bg-amber-50 border border-amber-200/60 rounded-2xl p-4 flex gap-3 items-start mt-6 shadow-sm">
+                    <div class="text-amber-500 text-xl mt-0.5">📌</div>
+                    <div>
+                        <h4 class="text-xs font-black text-amber-900 mb-1.5">ملاحظة هامة</h4>
+                        <ul class="text-xs text-amber-700 font-bold space-y-1 list-disc list-inside">
+                            <li>أرجو أن ترفق مع الرسالة في الواتساب صوراً توضيحية لتصميمك وشعارك.</li>
+                            <li>إذا كنت تريد أي منتج آخر غير متوفر في الكتالوج، أرسل تفاصيله وسنقوم بتوفيره لك.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- الفوتر (زر الإرسال) -->
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+                <button onclick="closeOrderModal()" class="px-6 py-2.5 rounded-xl font-bold text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition">إلغاء</button>
+                <button onclick="submitOrderViaWhatsApp()" class="flex items-center gap-2 px-8 py-2.5 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition active:scale-95">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.573-.187-.981-.342-1.714-.652-2.824-2.4-2.91-2.515-.086-.115-.693-.923-.693-1.764s.434-1.258.585-1.421c.15-.163.33-.21.44-.21.11 0 .22.001.317.005.105.005.247-.04.375.273.131.319.444 1.084.484 1.164.04.08.065.173.01.282-.055.109-.084.177-.168.272-.085.096-.178.209-.253.286-.084.085-.175.178-.078.346.096.168.428.711.92 1.153.636.571 1.171.748 1.336.833.165.085.263.076.362-.036.099-.113.428-.499.544-.67.115-.173.23-.146.383-.09.153.056.966.455 1.132.538.166.083.277.126.317.195.04.069.04.404-.104.809z"></path></svg>
+                    إعتماد وإرسال الطلب عبر واتساب
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة العرض المكبر للمنتج (Product Quick View) -->
+    <div id="productDetailsModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300 px-4 py-6">
+        <div class="bg-white w-full max-w-5xl max-h-[95vh] rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden scale-95 transition-transform duration-300 relative">
+            
+            <!-- زر الإغلاق السريع المطلق -->
+            <button onclick="closeProductDetails()" class="absolute top-4 left-4 z-10 bg-white/80 hover:bg-red-50 text-slate-400 hover:text-red-500 p-2 rounded-full shadow-sm backdrop-blur transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <!-- القسم الأيمن: الصورة المكبرة -->
+            <div class="w-full md:w-1/2 bg-slate-100 relative h-64 md:h-auto overflow-hidden group flex items-center justify-center p-4">
+                <img id="detailImage" src="" alt="Product Image" class="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105">
+                <span id="detailCustomId" class="absolute top-4 right-4 bg-slate-900/80 backdrop-blur-md text-white text-sm font-black px-3 py-1.5 rounded-xl shadow-lg border border-white/20">
+                </span>
+                <span id="detailCountry" class="absolute bottom-4 right-4 bg-white/95 backdrop-blur-md text-slate-800 text-sm font-extrabold px-3 py-1.5 rounded-xl shadow-lg border border-slate-100 flex items-center gap-2">
+                </span>
+            </div>
+
+            <!-- القسم الأيسر: التفاصيل التقنية والتسعير -->
+            <div class="w-full md:w-1/2 flex flex-col h-full max-h-[50vh] md:max-h-full overflow-y-auto custom-scroll">
+                <div class="p-6 md:p-8 flex-1">
+                    <h2 id="detailProductName" class="text-2xl font-black text-slate-900 mb-2 leading-tight"></h2>
+                    
+                    <div class="space-y-4 mt-6">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">المقاس / Size</span>
+                                <span id="detailSize" class="text-sm font-extrabold text-slate-800"></span>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">الكمية والوحدة</span>
+                                <span id="detailQty" class="text-sm font-extrabold text-slate-800"></span>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">المواصفات الأساسية</span>
+                            <span id="detailProductSpecs" class="text-sm font-bold text-slate-800 whitespace-pre-wrap"></span>
+                        </div>
+                        
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">مواصفات إضافية</span>
+                            <span id="detailSpecs" class="text-sm font-bold text-slate-800 whitespace-pre-wrap"></span>
+                        </div>
+
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">أبعاد الكرتون (L×W×H) cm</span>
+                            <span id="detailDims" class="text-sm font-bold text-slate-800"></span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">التعبئة (لكل كرتون)</span>
+                                <span id="detailQtyPerCarton" class="text-sm font-bold text-slate-800"></span>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">إجمالي الكراتين</span>
+                                <span id="detailTotalCartons" class="text-sm font-bold text-slate-800"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- شريط السعر السلفي (تفاعلي) -->
+                <div class="p-6 md:p-8 border-t border-slate-100 bg-gradient-to-t from-slate-50 to-white mt-auto">
+                    <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-4 border border-amber-100 mb-4 flex justify-between items-center">
+                        <div>
+                            <span id="detailPriceLabel" class="text-[10px] font-bold text-amber-600 block uppercase tracking-wide">السعر الواصل للعميل</span>
+                            <span id="detailUnitPrice" class="text-3xl font-extrabold text-orange-600 tracking-tight"></span>
+                        </div>
+                        <div class="text-left">
+                            <span class="text-[10px] font-bold text-slate-400 block uppercase">الحد الأدنى للطلب</span>
+                            <span id="detailMoq" class="text-xl font-extrabold text-slate-800"></span>
+                        </div>
+                    </div>
+                    
+                    <div id="detailActionButtonContainer">
+                        <!-- سيتم إدراج زر الطلب هنا عبر الجافاسكريبت لضمان المزامنة -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ربط الملف البرمجي للكتالوج -->
+    <script src="../js/App.js"></script>
+    <script src="../js/catalog.js"></script>
+</body>
+
+</html>

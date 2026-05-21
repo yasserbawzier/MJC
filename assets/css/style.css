@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+
+body {
+    font-family: 'Cairo', sans-serif !important;
+}
+
+/* تنسيق إضافي لجعل الجداول تبدو احترافية */
+.table-container {
+    @apply overflow-x-auto shadow-md sm:rounded-lg;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-wrapper table {
+    min-width: max-content;
+    white-space: nowrap;
+}
+
+.invoices-table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+.invoices-table-wrapper table {
+    min-width: 900px;
+    white-space: nowrap;
+}
+

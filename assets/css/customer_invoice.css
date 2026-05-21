@@ -1,0 +1,36 @@
+body {
+    font-family: 'Cairo', sans-serif;
+    background-color: #f1f5f9;
+}
+
+/* تنسيقات الطباعة الخاصة بـ A4 */
+@media print {
+    body {
+        background: white !important;
+        background-color: white !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    .print-card {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: white !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    .print-table th {
+        background-color: #f8fafc !important;
+        color: #0f172a !important;
+        -webkit-print-color-adjust: exact;
+    }
+}
