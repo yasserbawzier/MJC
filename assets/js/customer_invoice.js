@@ -3,6 +3,7 @@ let currentInvoiceId = null;
 let invoiceItems = [];
 let productsLookup = [];
 let itemPhotosLookup = {};
+let showInactiveItems = false; // متغير للتحكم في ظهور العناصر الملغية
 
 // قائمة الأعمدة الـ 22 لتسهيل إدارتها تفاعلياً
 const ALL_COLUMNS = [
@@ -125,6 +126,23 @@ function toggleColumnVisibility(colId, isVisible) {
     });
 }
 
+// دالة تبديل إظهار/إخفاء العناصر الملغية
+function toggleInactiveItems() {
+    showInactiveItems = !showInactiveItems;
+    const btn = document.getElementById('btnToggleInactive');
+    if (showInactiveItems) {
+        btn.innerHTML = '👁️‍🗨️ إخفاء العناصر الملغية';
+        btn.classList.replace('bg-gray-100', 'bg-emerald-100');
+        btn.classList.replace('text-gray-700', 'text-emerald-700');
+    } else {
+        btn.innerHTML = '👁️ إظهار العناصر الملغية';
+        btn.classList.replace('bg-emerald-100', 'bg-gray-100');
+        btn.classList.replace('text-emerald-700', 'text-gray-700');
+    }
+    // إعادة بناء الجدول
+    renderCustomerInvoiceItems();
+}
+
 // تطبيق جميع الرؤى للأعمدة مرة واحدة
 function applyAllColumnVisibilities() {
     ALL_COLUMNS.forEach(col => {
@@ -151,7 +169,7 @@ async function loadCustomerInvoiceData() {
             { data: productsData, error: productsError }
         ] = await Promise.all([
             _supabase.from('invoices').select('*, customers(customer_custom_id, full_name, phone)').eq('id', currentInvoiceId).single(),
-            _supabase.from('invoice_items').select('id, product_id, invoice_id, status, created_at, factory_price_per_unit, quantity, shipping_price_per_unit, fixed_commission_rate, qty_per_ctn, CTN, gw_per_ctn_kg, length_cm, width_cm, height_cm, size, specifications, sample, production, unit_type').eq('invoice_id', currentInvoiceId).eq('status', true).order('created_at', { ascending: true }),
+            _supabase.from('invoice_items').select('id, product_id, invoice_id, status, created_at, factory_price_per_unit, quantity, shipping_price_per_unit, fixed_commission_rate, qty_per_ctn, CTN, gw_per_ctn_kg, length_cm, width_cm, height_cm, size, specifications, sample, production, unit_type').eq('invoice_id', currentInvoiceId).order('created_at', { ascending: true }),
             _supabase.from('products').select('id, product_name, product_custom_id, product_image_url')
         ]);
 
@@ -163,7 +181,10 @@ async function loadCustomerInvoiceData() {
         invoiceItems = itemsData || [];
 
         // ملء ترويسة معلومات العميل والفاتورة الرسمية المحدثة
-        document.getElementById('invoiceNumDisplay').textContent = invoiceData.invoice_number || '-';
+        const invNum = invoiceData.invoice_number || '-';
+        document.getElementById('invoiceNumDisplay').textContent = invNum;
+        document.title = invNum !== '-' ? `Invoice_${invNum}` : 'Commercial Invoice';
+        
         document.getElementById('customerName').textContent = invoiceData.customers?.full_name || '-';
         document.getElementById('customerId').textContent = invoiceData.customers?.customer_custom_id || '-';
         document.getElementById('customerContact').textContent = invoiceData.customers?.phone || '-';
@@ -210,8 +231,16 @@ function renderCustomerInvoiceItems() {
     let grandGw = 0;
     let grandCbm = 0;
     let grandDeliveredTotal = 0;
+    
+    // فلترة العناصر المراد عرضها بناءً على زر (إظهار العناصر الملغية)
+    const itemsToRender = invoiceItems.filter(item => showInactiveItems ? true : item.status === true);
 
-    invoiceItems.forEach((item, index) => {
+    if (itemsToRender.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="23" class="p-8 text-center text-gray-500 font-bold">⚠️ لا توجد عناصر لعرضها.</td></tr>`;
+        return;
+    }
+
+    itemsToRender.forEach((item, index) => {
         const product = productsLookup.find(p => p.id === item.product_id);
         const itemPhoto = itemPhotosLookup[item.id] || {};
 
@@ -254,46 +283,53 @@ function renderCustomerInvoiceItems() {
         grandCbm += totalCbm;
         grandDeliveredTotal += totalLandedAmount;
 
-        // تجهيز صورة المنتج الافتراضية وصور البند الثلاث بحجم أكبر (w-28 h-28) مع إمكانية التكبير والتأثيرات
+        // تجهيز صورة المنتج الافتراضية وصور البند الثلاث بحجم أكبر جداً (w-36 h-36) للوضوح التام
         const productImageHtml = product && product.product_image_url
-            ? `<img src="${product.product_image_url}" alt="Product Image" onclick="openImagePreview(this.src)" class="w-28 h-28 object-cover rounded-xl border border-gray-250 mx-auto shadow-sm hover:scale-110 hover:shadow-md cursor-zoom-in transition-all duration-200">`
+            ? `<img src="${product.product_image_url}" alt="Product Image" onclick="openImagePreview(this.src)" class="w-36 h-36 object-contain rounded-xl border border-gray-250 mx-auto shadow-sm hover:scale-110 hover:shadow-md cursor-zoom-in transition-all duration-200 bg-white">`
             : '-';
         const clientPhotoHtml = itemPhoto.client_photo_url
-            ? `<img src="${itemPhoto.client_photo_url}" alt="Client Photo" onclick="openImagePreview(this.src)" class="w-28 h-28 object-cover rounded-xl border border-gray-250 mx-auto shadow-sm hover:scale-110 hover:shadow-md cursor-zoom-in transition-all duration-200">`
+            ? `<img src="${itemPhoto.client_photo_url}" alt="Client Photo" onclick="openImagePreview(this.src)" class="w-36 h-36 object-contain rounded-xl border border-gray-250 mx-auto shadow-sm hover:scale-110 hover:shadow-md cursor-zoom-in transition-all duration-200 bg-white">`
             : '-';
         const designPhotoHtml = itemPhoto.design_photo_url
-            ? `<img src="${itemPhoto.design_photo_url}" alt="Design Photo" onclick="openImagePreview(this.src)" class="w-28 h-28 object-cover rounded-xl border border-gray-250 mx-auto shadow-sm hover:scale-110 hover:shadow-md cursor-zoom-in transition-all duration-200">`
+            ? `<img src="${itemPhoto.design_photo_url}" alt="Design Photo" onclick="openImagePreview(this.src)" class="w-36 h-36 object-contain rounded-xl border border-gray-250 mx-auto shadow-sm hover:scale-110 hover:shadow-md cursor-zoom-in transition-all duration-200 bg-white">`
             : '-';
         const dielinePhotoHtml = itemPhoto.dieline_photo_url
-            ? `<img src="${itemPhoto.dieline_photo_url}" alt="Dieline Photo" onclick="openImagePreview(this.src)" class="w-28 h-28 object-cover rounded-xl border border-gray-250 mx-auto shadow-sm hover:scale-110 hover:shadow-md cursor-zoom-in transition-all duration-200">`
+            ? `<img src="${itemPhoto.dieline_photo_url}" alt="Dieline Photo" onclick="openImagePreview(this.src)" class="w-36 h-36 object-contain rounded-xl border border-gray-250 mx-auto shadow-sm hover:scale-110 hover:shadow-md cursor-zoom-in transition-all duration-200 bg-white">`
             : '-';
 
         const row = document.createElement('tr');
-        row.className = 'hover:bg-slate-50/50 transition text-xs border-b border-gray-100 font-mono';
+        // إذا كان العنصر ملغي (غير نشط) يتم جعله باهتاً أو بخلفية رمادية
+        const rowStyle = item.status === true 
+            ? 'hover:bg-slate-50/50 transition text-xs font-mono'
+            : 'bg-gray-100 text-gray-400 opacity-70 grayscale transition text-xs font-mono line-through decoration-gray-400';
+            
+        row.className = rowStyle;
+        
+        // استخدام كلاسات الحدود (border) على كل خلية (td) لتوضيح شبكة الجدول بدقة باللون الأسود
         row.innerHTML = `
-            <td class="p-3 text-center font-bold text-gray-400 col-item select-none">${index + 1}</td>
-            <td class="p-3 font-bold text-slate-700 col-productid">${product?.product_custom_id || '-'}</td>
-            <td class="p-3 text-center col-productimage">${productImageHtml}</td>
-            <td class="p-3 text-center col-clientphoto">${clientPhotoHtml}</td>
-            <td class="p-3 text-center col-designphoto">${designPhotoHtml}</td>
-            <td class="p-3 text-center col-dielinephoto">${dielinePhotoHtml}</td>
-            <td class="p-3 text-slate-850 font-bold col-designdetails font-sans">${item.design_details || '-'}</td>
-            <td class="p-3 text-gray-500 col-size" dir="ltr">${item.size || '-'}</td>
-            <td class="p-3 text-gray-500 col-specifications font-sans">${item.specifications || '-'}</td>
-            <td class="p-3 text-gray-500 col-sample font-sans">${item.sample || '-'}</td>
-            <td class="p-3 text-gray-500 col-production font-sans">${item.production || '-'}</td>
-            <td class="p-3 text-center font-bold col-moq">${qty.toLocaleString('en-US')}</td>
-            <td class="p-3 text-center text-gray-500 col-unit font-sans">${item.unit_type || '-'}</td>
-            <td class="p-3 text-right font-bold text-slate-800 col-unitprice" dir="ltr">$${formatNumber(unitLandedPrice)}</td>
-            <td class="p-3 text-right font-black text-emerald-700 bg-emerald-50/10 col-totalamount" dir="ltr">$${formatNumber(totalLandedAmount)}</td>
-            <td class="p-3 text-center col-qtyctn">${qtyPerCtn.toLocaleString('en-US')}</td>
-            <td class="p-3 text-center col-ctn">${ctnCount.toLocaleString('en-US')}</td>
-            <td class="p-3 text-center col-gwctn">${(gwPerCtn * ctnCount).toLocaleString('en-US', { maximumFractionDigits: 2 })}</td>
-            <td class="p-3 text-center col-length">${lengthCm}</td>
-            <td class="p-3 text-center col-width">${widthCm}</td>
-            <td class="p-3 text-center col-height">${heightCm}</td>
-            <td class="p-3 text-right col-cbmctn" dir="ltr">${cbmPerCtn.toFixed(4)}</td>
-            <td class="p-3 text-right font-bold col-totalcbm" dir="ltr">${totalCbm.toFixed(4)}</td>
+            <td class="p-3 text-center font-bold col-item select-none border border-black">${index + 1}</td>
+            <td class="p-3 font-bold col-productid border border-black">${product?.product_custom_id || '-'}</td>
+            <td class="p-3 text-center col-productimage border border-black">${productImageHtml}</td>
+            <td class="p-3 text-center col-clientphoto border border-black">${clientPhotoHtml}</td>
+            <td class="p-3 text-center col-designphoto border border-black">${designPhotoHtml}</td>
+            <td class="p-3 text-center col-dielinephoto border border-black">${dielinePhotoHtml}</td>
+            <td class="p-3 font-bold col-designdetails font-sans border border-black">${item.design_details || '-'}</td>
+            <td class="p-3 col-size border border-black" dir="ltr">${item.size || '-'}</td>
+            <td class="p-3 col-specifications font-sans border border-black">${item.specifications || '-'}</td>
+            <td class="p-3 col-sample font-sans border border-black">${item.sample || '-'}</td>
+            <td class="p-3 col-production font-sans border border-black">${item.production || '-'}</td>
+            <td class="p-3 text-center font-bold col-moq border border-black">${qty.toLocaleString('en-US')}</td>
+            <td class="p-3 text-center col-unit font-sans border border-black">${item.unit_type || '-'}</td>
+            <td class="p-3 text-right font-bold col-unitprice border border-black" dir="ltr">$${formatNumber(unitLandedPrice)}</td>
+            <td class="p-3 text-right font-black col-totalamount border border-black" dir="ltr">$${formatNumber(totalLandedAmount)}</td>
+            <td class="p-3 text-center col-qtyctn border border-black">${qtyPerCtn.toLocaleString('en-US')}</td>
+            <td class="p-3 text-center col-ctn border border-black">${ctnCount.toLocaleString('en-US')}</td>
+            <td class="p-3 text-center col-gwctn border border-black">${(gwPerCtn * ctnCount).toLocaleString('en-US', { maximumFractionDigits: 2 })}</td>
+            <td class="p-3 text-center col-length border border-black">${lengthCm}</td>
+            <td class="p-3 text-center col-width border border-black">${widthCm}</td>
+            <td class="p-3 text-center col-height border border-black">${heightCm}</td>
+            <td class="p-3 text-right col-cbmctn border border-black" dir="ltr">${cbmPerCtn.toFixed(4)}</td>
+            <td class="p-3 text-right font-bold col-totalcbm border border-black" dir="ltr">${totalCbm.toFixed(4)}</td>
         `;
         fragment.appendChild(row);
     });
@@ -315,6 +351,74 @@ function renderCustomerInvoiceItems() {
 
     // تطبيق حالة رؤية الأعمدة الـ 22 كاملة فوراً
     applyAllColumnVisibilities();
+    
+    // تفعيل ميزة تغيير مقاس الأعمدة يدوياً
+    initResizableColumns();
+}
+
+// دالة تفعيل وتطبيق ميزة سحب وتغيير عرض الأعمدة يدوياً
+function initResizableColumns() {
+    const table = document.querySelector('.print-table');
+    if (!table) return;
+
+    const headers = table.querySelectorAll('th');
+    
+    headers.forEach(th => {
+        // منع إضافة المقبض أكثر من مرة
+        if (th.querySelector('.resizer')) return;
+
+        const resizer = document.createElement('div');
+        resizer.classList.add('resizer', 'no-print');
+        th.appendChild(resizer);
+
+        let startX, startWidth, minAllowedWidth = 30;
+
+        resizer.addEventListener('mousedown', function (e) {
+            startX = e.pageX;
+            startWidth = th.offsetWidth;
+            
+            // حساب العرض الأدنى ديناميكياً بناءً على طول نص العنوان فقط
+            const tempSpan = document.createElement('span');
+            tempSpan.style.whiteSpace = 'nowrap';
+            tempSpan.style.position = 'absolute';
+            tempSpan.style.visibility = 'hidden';
+            tempSpan.style.font = window.getComputedStyle(th).font;
+            tempSpan.textContent = th.textContent.trim();
+            document.body.appendChild(tempSpan);
+            
+            // إضافة مساحة الـ Padding الداخلية للخلية لضمان عدم اختفاء الحروف (حوالي 24 بكسل)
+            minAllowedWidth = tempSpan.offsetWidth + 24; 
+            document.body.removeChild(tempSpan);
+
+            resizer.classList.add('resizing');
+
+            const onMouseMove = function (e) {
+                // الجدول LTR لذلك السحب يميناً يكبر العمود
+                let newWidth = startWidth + (e.pageX - startX);
+                
+                // تطبيق حد أدنى: لا يمكن تصغير العمود أقل من عرض النص الفعلي للعنوان
+                if (newWidth < minAllowedWidth) {
+                    newWidth = minAllowedWidth;
+                }
+                
+                // استخدام setProperty مع important لضمان تغطيتها على تنسيقات ملف CSS أثناء الطباعة
+                th.style.setProperty('width', newWidth + 'px', 'important');
+                th.style.setProperty('min-width', newWidth + 'px', 'important');
+                th.style.setProperty('max-width', newWidth + 'px', 'important');
+            };
+
+            const onMouseUp = function () {
+                resizer.classList.remove('resizing');
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            e.stopPropagation();
+            e.preventDefault();
+        });
+    });
 }
 
 // دالة عرض وتكبير الصور بشكل منبثق فخم

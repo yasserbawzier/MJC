@@ -223,6 +223,39 @@ function updateProductPreview() {
     previewDiv.classList.remove('hidden');
 }
 
+// --- Custom Renderers for Colored Columns ---
+function customColoredNumericRenderer(instance, td, row, col, prop, value, cellProperties) {
+    Handsontable.renderers.NumericRenderer.apply(this, arguments);
+    applyColumnColors(instance, td, row, prop);
+}
+
+function customColoredHtmlRenderer(instance, td, row, col, prop, value, cellProperties) {
+    Handsontable.renderers.HtmlRenderer.apply(this, arguments);
+    applyColumnColors(instance, td, row, prop);
+}
+
+function applyColumnColors(instance, td, row, prop) {
+    const redCols = ['shipping_price_per_unit'];
+    const blueCols = ['quantity', 'unit_type', 'factory_price_per_unit'];
+    const brownCols = ['qty_per_ctn', 'CTN', 'gw_per_ctn_kg', 'length_cm', 'width_cm', 'height_cm'];
+    
+    const rowData = instance.getSourceDataAtRow(row);
+    if (!rowData) return;
+    
+    if (rowData.is_summary) {
+        if (redCols.includes(prop)) td.style.backgroundColor = '#fecaca'; // darker red for summary
+        else if (blueCols.includes(prop)) td.style.backgroundColor = '#bfdbfe'; // darker blue for summary
+        else if (brownCols.includes(prop)) td.style.backgroundColor = '#e8dccb'; // darker brown for summary
+        
+        td.style.color = '#000';
+        td.style.fontWeight = 'bold';
+    } else {
+        if (redCols.includes(prop)) td.style.backgroundColor = '#fee2e2';
+        else if (blueCols.includes(prop)) td.style.backgroundColor = '#dbeafe';
+        else if (brownCols.includes(prop)) td.style.backgroundColor = '#f5ebdf';
+    }
+}
+
 // Renderers for Handsontable
 function photoRenderer(instance, td, row, col, prop, value, cellProperties) {
     Handsontable.renderers.BaseRenderer.apply(this, arguments);
@@ -370,10 +403,10 @@ let hotInstance = null;
 async function saveMergeState(cellRange, isMerge) {
     const itemsToRender = showOnlyActive ? invoiceItems.filter(item => item.status === true) : invoiceItems;
     
-    const fromRow = cellRange.from.row;
-    const toRow = cellRange.to.row;
-    const fromCol = cellRange.from.col;
-    const toCol = cellRange.to.col;
+    const fromRow = cellRange.from ? cellRange.from.row : cellRange.start.row;
+    const toRow = cellRange.to ? cellRange.to.row : cellRange.end.row;
+    const fromCol = cellRange.from ? cellRange.from.col : cellRange.start.col;
+    const toCol = cellRange.to ? cellRange.to.col : cellRange.end.col;
 
     const columnsConfig = [
         { data: 'item_name' },
@@ -472,10 +505,10 @@ async function saveMergeState(cellRange, isMerge) {
 async function saveStyleState(cellRange, styleType, colorClass) {
     const itemsToRender = showOnlyActive ? invoiceItems.filter(item => item.status === true) : invoiceItems;
     
-    const fromRow = cellRange.from.row;
-    const toRow = cellRange.to.row;
-    const fromCol = cellRange.from.col;
-    const toCol = cellRange.to.col;
+    const fromRow = cellRange.from ? cellRange.from.row : cellRange.start.row;
+    const toRow = cellRange.to ? cellRange.to.row : cellRange.end.row;
+    const fromCol = cellRange.from ? cellRange.from.col : cellRange.start.col;
+    const toCol = cellRange.to ? cellRange.to.col : cellRange.end.col;
 
     const columnsConfig = hotInstance.getSettings().columns;
     if (!columnsConfig) return;
@@ -500,12 +533,19 @@ async function saveStyleState(cellRange, styleType, colorClass) {
             const colName = colDef.data;
             
             if (!meta[colName]) meta[colName] = {};
-            
             if (styleType === 'bg') {
                 meta[colName].bg = colorClass;
             } else if (styleType === 'color') {
                 meta[colName].color = colorClass;
             }
+            
+            // تحديث الكاش الداخلي للجدول فوراً لضمان رسم اللون
+            let customClasses = ['htCenter', 'htMiddle', 'custom-ht'];
+            if (meta[colName].bg && meta[colName].bg !== 'ht-bg-none') customClasses.push(meta[colName].bg);
+            if (meta[colName].color && meta[colName].color !== 'ht-text-none') customClasses.push(meta[colName].color);
+            
+            hotInstance.setCellMeta(r, c, 'className', customClasses.join(' '));
+            
             changed = true;
         }
 
@@ -791,18 +831,18 @@ function renderHandsontable() {
             { data: 'product_image_url', renderer: productImageRenderer, readOnly: true },
             { data: 'sample', renderer: 'html', editor: RichTextEditor },
             { data: 'production', renderer: 'html', editor: RichTextEditor },
-            { data: 'quantity', type: 'numeric' },
-            { data: 'unit_type', renderer: 'html', editor: RichTextEditor },
-            { data: 'factory_price_per_unit', type: 'numeric' },
+            { data: 'quantity', type: 'numeric', renderer: customColoredNumericRenderer, className: 'ht-bg-blue' },
+            { data: 'unit_type', renderer: customColoredHtmlRenderer, editor: RichTextEditor, className: 'ht-bg-blue' },
+            { data: 'factory_price_per_unit', type: 'numeric', renderer: customColoredNumericRenderer, className: 'ht-bg-blue' },
             { data: 'total_factory_price', type: 'numeric', readOnly: true },
-            { data: 'shipping_price_per_unit', type: 'numeric' },
+            { data: 'shipping_price_per_unit', type: 'numeric', renderer: customColoredNumericRenderer, className: 'ht-bg-red' },
             { data: 'total_shipping_cost', type: 'numeric', readOnly: true },
-            { data: 'qty_per_ctn', type: 'numeric' },
-            { data: 'CTN', type: 'numeric' },
-            { data: 'gw_per_ctn_kg', type: 'numeric' },
-            { data: 'length_cm', type: 'numeric' },
-            { data: 'width_cm', type: 'numeric' },
-            { data: 'height_cm', type: 'numeric' },
+            { data: 'qty_per_ctn', type: 'numeric', renderer: customColoredNumericRenderer, className: 'ht-bg-brown' },
+            { data: 'CTN', type: 'numeric', renderer: customColoredNumericRenderer, className: 'ht-bg-brown' },
+            { data: 'gw_per_ctn_kg', type: 'numeric', renderer: customColoredNumericRenderer, className: 'ht-bg-brown' },
+            { data: 'length_cm', type: 'numeric', renderer: customColoredNumericRenderer, className: 'ht-bg-brown' },
+            { data: 'width_cm', type: 'numeric', renderer: customColoredNumericRenderer, className: 'ht-bg-brown' },
+            { data: 'height_cm', type: 'numeric', renderer: customColoredNumericRenderer, className: 'ht-bg-brown' },
             { data: 'cbm_per_ctn', type: 'numeric', readOnly: true },
             { data: 'total_cbm', type: 'numeric', readOnly: true },
             { data: 'place', renderer: 'html', editor: RichTextEditor },
@@ -855,20 +895,6 @@ function renderHandsontable() {
         dropdownMenu: true,
         contextMenu: {
             items: {
-                "bgColor": {
-                    name: 'لون خلفية الخلية 🎨',
-                    submenu: {
-                        items: [
-                            { key: "bgColor:red", name: 'أحمر (Red)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-red'); } },
-                            { key: "bgColor:green", name: 'أخضر (Green)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-green'); } },
-                            { key: "bgColor:blue", name: 'أزرق (Blue)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-blue'); } },
-                            { key: "bgColor:yellow", name: 'أصفر (Yellow)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-yellow'); } },
-                            { key: "bgColor:gray", name: 'رمادي (Gray)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-gray'); } },
-                            { key: "bgColor:brown", name: 'بني فاتح (Light Brown)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-brown'); } },
-                            { key: "bgColor:clear", name: 'إزالة اللون (شفاف)', callback: function(key, selection) { saveStyleState(selection[0], 'bg', 'ht-bg-none'); } }
-                        ]
-                    }
-                },
                 "textColor": {
                     name: 'لون النص 🔤',
                     submenu: {
@@ -897,15 +923,27 @@ function renderHandsontable() {
             let customClasses = ['htCenter', 'htMiddle', 'custom-ht'];
             let rowData = this.instance.getSourceDataAtRow(row);
             
+            // الألوان الثابتة للأعمدة حسب التخصص
+            const redColumns = ['shipping_price_per_unit', 'total_shipping_cost'];
+            const blueColumns = ['quantity', 'unit_type', 'factory_price_per_unit', 'total_factory_price'];
+            const brownColumns = ['qty_per_ctn', 'CTN', 'gw_per_ctn_kg', 'length_cm', 'width_cm', 'height_cm', 'cbm_per_ctn', 'total_cbm'];
+
+            if (redColumns.includes(prop)) {
+                customClasses.push('ht-bg-red');
+            } else if (blueColumns.includes(prop)) {
+                customClasses.push('ht-bg-blue');
+            } else if (brownColumns.includes(prop)) {
+                customClasses.push('ht-bg-brown');
+            }
+            
+            // قراءة ألوان النصوص المحفوظة للخلية
             if (rowData && rowData.merge_metadata) {
                 let meta = rowData.merge_metadata;
                 if (typeof meta === 'string') {
                     try { meta = JSON.parse(meta); } catch (e) { meta = null; }
                 }
                 if (meta && typeof meta === 'object' && meta[prop]) {
-                    if (meta[prop].bg && meta[prop].bg !== 'ht-bg-none') {
-                        customClasses.push(meta[prop].bg);
-                    }
+                    // لم نعد نقرأ لون الخلفية الديناميكي لأننا ثبتناه
                     if (meta[prop].color && meta[prop].color !== 'ht-text-none') {
                         customClasses.push(meta[prop].color);
                     }
@@ -914,7 +952,10 @@ function renderHandsontable() {
             
             if (rowData && rowData.is_summary) {
                 cellProperties.readOnly = true;
-                customClasses.push('!bg-slate-200', '!text-black', '!font-extrabold');
+                customClasses.push('!text-black', '!font-extrabold');
+                if (!redColumns.includes(prop) && !blueColumns.includes(prop) && !brownColumns.includes(prop)) {
+                    customClasses.push('!bg-slate-200');
+                }
             }
             
             cellProperties.className = customClasses.join(' ');
@@ -1044,17 +1085,19 @@ function updateInvoiceItemsFooter() {
 
     const totalRow = document.getElementById('invoiceItemsTotalRow');
     if (totalRow) {
+        // bg-[#fee2e2] is red-100, bg-[#dbeafe] is blue-100, bg-[#f5ebdf] is custom brown
         totalRow.innerHTML = `
-            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="11">المجموع الإجمالي / Totals</td>
-            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-blue-50">${formatNumber(activeMOQ)}</td>
-            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="2">-</td>
-            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-blue-100">${formatNumber(activeAmountVal)}</td>
-            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center">-</td>
-            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-red-100">${formatNumber(activeShippingVal)}</td>
-            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center">-</td>
-            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-yellow-100">${formatNumber(activeCtnVal)}</td>
-            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="5">-</td>
-            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-yellow-100">${activeCbmVal > 0 ? activeCbmVal.toFixed(4) : '-'}</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center font-bold" colspan="11">المجموع الإجمالي / Totals</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center font-bold bg-[#dbeafe]">${formatNumber(activeMOQ)}</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-[#dbeafe]">-</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-[#dbeafe]">-</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center font-bold bg-[#bfdbfe]">${formatNumber(activeAmountVal)}</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-[#fee2e2]">-</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center font-bold bg-[#fecaca]">${formatNumber(activeShippingVal)}</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-[#f5ebdf]">-</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center font-bold bg-[#f5ebdf]">${formatNumber(activeCtnVal)}</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center bg-[#f5ebdf]" colspan="5">-</td>
+            <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center font-bold bg-[#e8dccb]">${activeCbmVal > 0 ? activeCbmVal.toFixed(4) : '-'}</td>
             <td class="p-3 text-sm text-gray-900 border border-gray-200 text-center" colspan="3">-</td>
         `;
     }
@@ -2382,4 +2425,126 @@ async function submitAddProduct(event) {
         if (submitBtn) submitBtn.disabled = false;
         if (spinner) spinner.classList.add('hidden');
     }
+}
+
+// تصدير البيانات إلى إكسل مع دعم الصور والتلوين
+function exportToExcel() {
+    if (!hotInstance) {
+        showToast('لم يتم تحميل الجدول بعد', 'error');
+        return;
+    }
+
+    const itemsToRender = showOnlyActive ? invoiceItems.filter(item => item.status === true) : invoiceItems;
+    const columnsConfig = hotInstance.getSettings().columns;
+    const headers = hotInstance.getColHeader();
+    const aoa = [];
+    
+    // تجهيز صف العناوين مع التلوين والخط العريض
+    const headerRow = [];
+    headers.forEach((h, colIdx) => {
+        const colDef = columnsConfig[colIdx];
+        let bgColor = "FFE5E7EB"; // رمادي فاتح كافتراضي
+        if (colDef) {
+            if (['shipping_price_per_unit'].includes(colDef.data)) bgColor = "FFFECACA"; 
+            else if (['quantity', 'unit_type', 'factory_price_per_unit'].includes(colDef.data)) bgColor = "FFBFDBFE"; 
+            else if (['qty_per_ctn', 'CTN', 'gw_per_ctn_kg', 'length_cm', 'width_cm', 'height_cm'].includes(colDef.data)) bgColor = "FFE8DCCB"; 
+        }
+        
+        headerRow.push({
+            v: h ? h.toString() : "",
+            s: { 
+                fill: { fgColor: { rgb: bgColor } }, 
+                font: { bold: true, color: { rgb: "FF000000" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            }
+        });
+    });
+    aoa.push(headerRow);
+
+    itemsToRender.forEach(item => {
+        const rowData = [];
+        columnsConfig.forEach(col => {
+            let val = '';
+            let isFormula = false;
+            
+            if (col.data === 'product_id') {
+                const product = getProductById(item.product_id);
+                val = product ? product.product_custom_id : '';
+            } else if (col.data === 'product_image_url') {
+                const product = getProductById(item.product_id);
+                const url = product ? product.product_image_url : null;
+                if (url) { val = `IMAGE("${url}")`; isFormula = true; }
+            } else if (['client_photo_url', 'design_photo_url', 'dieline_photo_url'].includes(col.data)) {
+                const photos = itemPhotosLookup[item.id] || {};
+                const url = photos[col.data];
+                if (url) { val = `IMAGE("${url}")`; isFormula = true; }
+            } else {
+                val = item[col.data];
+                if (val === null || val === undefined) val = '';
+                
+                // تنظيف نصوص HTML
+                if (typeof val === 'string' && val.includes('<')) {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = val;
+                    val = temp.textContent || temp.innerText || '';
+                }
+            }
+
+            // تحديد لون الخلية بناءً على العمود
+            let bgColor = "FFFFFFFF"; // أبيض
+            if (['shipping_price_per_unit'].includes(col.data)) bgColor = "FFFEE2E2"; // أحمر
+            else if (['quantity', 'unit_type', 'factory_price_per_unit'].includes(col.data)) bgColor = "FFDBEAFE"; // أزرق
+            else if (['qty_per_ctn', 'CTN', 'gw_per_ctn_kg', 'length_cm', 'width_cm', 'height_cm'].includes(col.data)) bgColor = "FFF5EBDF"; // بني فاتح
+            
+            let cellObj = {};
+            if (isFormula) {
+                cellObj = { f: val, s: { fill: { fgColor: { rgb: bgColor } }, alignment: { horizontal: "center", vertical: "center" } } };
+            } else {
+                cellObj = { v: val, s: { fill: { fgColor: { rgb: bgColor } }, alignment: { horizontal: "center", vertical: "center" }, font: { name: "Arial" } } };
+            }
+            rowData.push(cellObj);
+        });
+        aoa.push(rowData);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    // تجهيز عرض الأعمدة (Column Widths)
+    const colWidths = [];
+    headers.forEach((h, colIdx) => {
+        const colDef = columnsConfig[colIdx];
+        let width = 15;
+
+        if (colDef && ['client_photo_url', 'design_photo_url', 'dieline_photo_url', 'product_image_url'].includes(colDef.data)) {
+            width = 25;
+        } else if (colDef && ['design_details', 'specifications'].includes(colDef.data)) {
+            width = 40;
+        } else {
+            let maxLen = h ? h.toString().length : 10;
+            for (let i = 1; i < aoa.length; i++) {
+                const cellObj = aoa[i][colIdx];
+                const cellVal = cellObj ? (cellObj.v || cellObj.f || '') : '';
+                if (cellVal && typeof cellVal === 'string' && !cellVal.startsWith('IMAGE')) {
+                    if (cellVal.length > maxLen) maxLen = cellVal.length;
+                }
+            }
+            width = Math.min(Math.max(maxLen + 2, 12), 50);
+        }
+        colWidths.push({ wch: width });
+    });
+    ws['!cols'] = colWidths;
+
+    // تجهيز ارتفاع الصفوف
+    const rowHeights = [{ hpt: 35 }]; // ترويسة
+    for (let i = 1; i < aoa.length; i++) {
+        rowHeights.push({ hpt: 80 }); 
+    }
+    ws['!rows'] = rowHeights;
+
+    XLSX.utils.book_append_sheet(wb, ws, "Invoice Items");
+    
+    const invoiceNo = document.getElementById('invoiceNumberDisplay').textContent || 'Export';
+    XLSX.writeFile(wb, `Invoice_${invoiceNo}_Items.xlsx`);
+    showToast('تم تصدير ملف الإكسل بنجاح', 'success');
 }

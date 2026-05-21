@@ -3,13 +3,66 @@ body {
     background-color: #f1f5f9;
 }
 
-/* تنسيقات الطباعة الخاصة بـ A4 */
+/* تنسيقات التحكم بعرض الأعمدة يدوياً (Resizable Columns) */
+.print-table th {
+    position: relative;
+    /* ضروري لتموضع المقبض */
+}
+
+.resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    /* الجدول LTR لذلك المقبض على اليمين */
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    user-select: none;
+    z-index: 10;
+    background-color: transparent;
+    transition: background-color 0.2s;
+}
+
+.resizer:hover,
+.resizer.resizing {
+    background-color: #10b981;
+    /* إضاءة باللون الأخضر عند السحب */
+}
+
+/* تنسيقات العرض الافتراضية على الشاشة (Screen) لضمان وضوح الأعمدة والصور قبل الطباعة */
+.print-table .col-productimage,
+.print-table .col-clientphoto,
+.print-table .col-designphoto,
+.print-table .col-dielinephoto {
+    min-width: 160px;
+    /* إعطاء الصور مساحة ضخمة جداً افتراضياً على الشاشة */
+}
+
+.print-table .col-designdetails,
+.print-table .col-specifications,
+.print-table .col-sample,
+.print-table .col-production {
+    min-width: 150px;
+    /* إعطاء مساحة مريحة للنصوص الطويلة */
+}
+
+/* تنسيقات الطباعة الخاصة بـ الفاتورة */
 @media print {
-    body {
+    @page {
+        size: A3 landscape;
+        /* استخدام ورقة بحجم A3 العرضي لتتسع لجميع الأعمدة بأريحية */
+        margin: 10mm;
+    }
+
+    html, body {
         background: white !important;
         background-color: white !important;
         padding: 0 !important;
         margin: 0 !important;
+        width: 100% !important;
+        min-width: max-content !important;
+        direction: ltr !important; /* الخدعة السحرية: تحويل اتجاه الطباعة لـ LTR ليقوم المتصفح بعمل Shrink-to-fit دون أن يقص الأعمدة اليسرى! */
+        /* السماح للجسم بالتمدد لمنع قص المحتوى في الاتجاهات */
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
@@ -18,14 +71,105 @@ body {
         display: none !important;
     }
 
+    /* إلغاء شريط التمرير والسماح بعرض الجدول بالكامل في الطباعة */
+    .overflow-x-auto {
+        overflow: visible !important;
+        overflow-x: visible !important;
+    }
+
     .print-card {
         border: none !important;
         box-shadow: none !important;
         padding: 0 !important;
         margin: 0 !important;
         background: white !important;
-        max-width: 100% !important;
         width: 100% !important;
+        /* يأخذ عرض الورقة */
+        min-width: max-content !important;
+        /* يتزامن مع الجسم لمنع القص */
+        max-width: none !important;
+        direction: ltr !important;
+    }
+
+    /* السماح للجدول بأخذ مساحته الطبيعية مع تمدده لملء الحاوية */
+    .print-table {
+        width: 100% !important;
+        min-width: max-content !important;
+        /* يتزامن مع الكرت لمنع سحق الأعمدة */
+        font-size: 10px !important;
+        table-layout: auto !important;
+    }
+
+    .print-table th,
+    .print-table td {
+        padding: 4px 6px !important;
+        /* زيادة المسافات الداخلية قليلاً للترتيب */
+        white-space: normal !important;
+        /* إلغاء nowrap والسماح بالتفاف النص */
+        word-break: break-word !important;
+        /* كسر الكلمات الطويلة إذا لزم الأمر */
+    }
+
+    /* تحجيم الأعمدة التي تحتوي على نصوص طويلة لتلتف في سطرين أو ثلاثة */
+    .print-table .col-designdetails,
+    .print-table .col-specifications,
+    .print-table .col-sample,
+    .print-table .col-production,
+    .print-table .col-size {
+        max-width: 120px !important;
+        /* السماح بعرض أكبر للنصوص بفضل مساحة الورقة الإضافية */
+        width: 120px !important;
+    }
+
+    /* تصغير عمود التسلسل (Item) لأنه يحتوي على رقم فقط */
+    .print-table .col-item {
+        max-width: 35px !important;
+        width: 35px !important;
+        text-align: center;
+    }
+
+    /* تكبير مساحة الصور الأربعة بشكل كبير لتكون واضحة تماماً */
+    .print-table .col-productimage,
+    .print-table .col-clientphoto,
+    .print-table .col-designphoto,
+    .print-table .col-dielinephoto {
+        max-width: 150px !important;
+        width: 150px !important;
+        min-width: 130px !important;
+    }
+
+    /* ضمان وضوح الصورة وتكبيرها بالكامل داخل الخلية دون اقتصاص */
+    .print-table .col-productimage img,
+    .print-table .col-clientphoto img,
+    .print-table .col-designphoto img,
+    .print-table .col-dielinephoto img {
+        width: 100% !important;
+        height: 140px !important;
+        /* فرض ارتفاع كبير للصورة لتكون واضحة */
+        max-height: 140px !important;
+        object-fit: contain !important;
+        /* احتواء الصورة بالكامل دون قص */
+        border-radius: 8px !important;
+        margin: auto !important;
+    }
+
+    /* تكبير مساحة الأعمدة التي قد تحتوي على قيم ضخمة (MOQ, Unit, Total Amount, CBM/CTN, Total CBM) */
+    .print-table .col-moq,
+    .print-table .col-unit,
+    .print-table .col-totalamount,
+    .print-table .col-cbmctn,
+    .print-table .col-totalcbm {
+        max-width: 85px !important;
+        width: 85px !important;
+    }
+
+    /* تضييق الأعمدة التي تحتوي على أرقام أو رموز قصيرة جداً */
+    .print-table .col-length,
+    .print-table .col-width,
+    .print-table .col-height,
+    .print-table .col-ctn {
+        max-width: 40px !important;
+        width: 40px !important;
     }
 
     .print-table th {

@@ -5,15 +5,15 @@
     <meta charset="UTF-8">
     <title>عناصر الفاتورة</title>
     <link rel="stylesheet" href="../css/tailwind.css">
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="../css/style.css">
-    <link rel="stylesheet" href="../css/invoice_items.css?v=2">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    
     <!-- Handsontable Library -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" />
+    
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/invoice_items.css?v=3">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     
 
 </head>
@@ -171,6 +171,16 @@
             </label>
             <input type="file" id="excelImportInput" accept=".xlsx,.xls,.csv" class="hidden"
                 onchange="handleExcelFileSelected(event)">
+
+            <!-- زر تصدير Excel -->
+            <button type="button" onclick="exportToExcel()" id="excelExportBtn"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-red-600 hover:bg-red-700 text-white transition-all duration-200 shadow-sm active:scale-95 cursor-pointer select-none">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m4-4l-4-4m0 0L8 12m4-4v12"></path>
+                </svg>
+                <span>تصدير إلى Excel</span>
+            </button>
 
             <!-- زر إضافة سطر جديد -->
             <button type="button" onclick="addNewRowToDatabase()"
@@ -695,7 +705,7 @@
 
     <script src="../js/App.js"></script>
     <script src="../js/excel_import.js?v=2.0"></script>
-    <script src="../js/invoice_items_hot.js?v=21.0"></script>
+    <script src="../js/invoice_items_hot.js?v=23.0"></script>
 </body>
 
 </html>
