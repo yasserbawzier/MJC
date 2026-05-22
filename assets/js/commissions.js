@@ -440,7 +440,10 @@ document.getElementById('addCommissionForm').addEventListener('submit', async (e
     try {
         const { error } = await _supabase
             .from('commissions_settings')
-            .insert([{ commission_rate: Number(rate) }]);
+            .insert([{ 
+                commission_rate: Number(rate),
+                commission_name: `Rate_${rate}_${Date.now()}` // Bypass unique constraint by generating a unique name
+            }]);
 
         if (error) throw error;
 

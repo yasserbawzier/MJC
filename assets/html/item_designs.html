@@ -6,20 +6,52 @@
     <title>تصاميم العناصر</title>
     <link rel="stylesheet" href="../css/tailwind.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/style.css">
+    <style>
+        /* Custom styles for image rendering */
+        .grid-image {
+            max-width: 60px;
+            max-height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            transition: transform 0.2s;
+        }
+        .grid-image:hover {
+            transform: scale(1.1);
+            border-color: #3b82f6;
+        }
+        .element-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin: 2px;
+            border: 1px solid #e5e7eb;
+        }
+        .element-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100 p-8">
-    <div class="max-w-7xl mx-auto">
-        <div class="mb-4 flex flex-col sm:flex-row sm:justify-between gap-3">
+    <div class="max-w-[1800px] mx-auto">
+        <div class="mb-4 flex flex-col sm:flex-row sm:justify-between items-center gap-3">
             <div class="space-x-3">
                 <a id="backToInvoiceItemsLink" href="#"
                     class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 inline-block">رجوع لعناصر الفاتورة</a>
-                <a href="#"
-                    onclick="return false"
-                    class="bg-green-600 text-white px-4 py-2 rounded-lg opacity-60 cursor-not-allowed"
-                    title="الصفحة غير متوفرة حالياً">إدارة Asset Types</a>
-                <!-- تم حذف asset_types.html من المشروع، لذا الرابط مؤقتاً معطل لمنع خطأ 404 -->
+                <a href="asset_types.html"
+                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 inline-block">إدارة Asset Types</a>
                 <a href="invoices.html"
                     class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 inline-block">الفواتير</a>
                 <a href="../../index.html"
@@ -27,7 +59,7 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6" dir="rtl">
             <div class="flex flex-col md:flex-row justify-between gap-4">
                 <div>
                     <h1 class="text-3xl font-bold text-gray-800">تصاميم العناصر</h1>
@@ -44,154 +76,118 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">إضافة تصميم جديد</h2>
-            <form id="itemDesignForm" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <!-- Action Bar -->
+        <div class="mb-4 flex justify-start select-none items-center gap-3" dir="ltr">
+            <button type="button" onclick="addNewRowToDatabase()"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 shadow-sm active:scale-95 select-none mr-auto">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                <span>إضافة سطر جديد</span>
+            </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-2" dir="rtl">
+            <div id="designsGrid" class="w-full h-[600px] overflow-hidden rounded-lg custom-scrollbar"></div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="imagePreviewModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9999] p-4">
+        <div class="relative bg-transparent rounded-xl max-w-4xl w-full">
+            <button type="button" onclick="closeImageModal()" class="absolute top-4 left-4 bg-white rounded-full p-2 shadow-md text-gray-700 hover:bg-gray-100 z-10 w-10 h-10 flex items-center justify-center font-bold text-xl leading-none">X</button>
+            <img id="modalPreviewImage" src="" alt="معاينة الصورة الكبيرة" class="w-full h-auto rounded-xl shadow-2xl object-contain max-h-[90vh] mx-auto">
+        </div>
+    </div>
+
+    <!-- Manage Elements Modal -->
+    <div id="manageElementsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-xl relative border border-gray-100 text-right dir-rtl">
+            <!-- Close Button -->
+            <button type="button" onclick="closeManageElementsModal()"
+                class="absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 z-10">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+
+            <h3 id="manageElementsModalTitle" class="text-xl font-bold text-gray-800 text-center mb-6">إضافة عنصر للتصميم</h3>
+
+            <form id="addElementForm" class="space-y-4 text-right">
+                <input type="hidden" id="currentDesignAssetId" value="">
+                <input type="hidden" id="currentEditElementId" value="">
+                
+                <!-- نوع العنصر -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">العنصر المرتبط</label>
-                    <select id="designItemId" name="item_id" required
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="">اختر العنصر</option>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">نوع العنصر <span class="text-red-500">*</span></label>
+                    <select id="elementAssetTypeId" required
+                        class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none text-right bg-white">
+                        <option value="">اختر نوع العنصر...</option>
                     </select>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">رقم النسخة</label>
-                    <input id="designVersionNumber" name="version_number" type="number" min="1" required
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="مثال: 1">
-                </div>
+                <!-- ترتيب التصميم (مخفي، يُحسب تلقائياً) -->
+                <input type="hidden" id="elementDisplayOrder" value="1">
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">حالة الموافقة</label>
-                    <select id="designIsApproved" name="is_approved" required
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="false">غير موافق عليه</option>
-                        <option value="true">موافق عليه</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">صورة التصميم</label>
-                    <input id="designFile" type="file" accept="image/*"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white" />
-                    <div id="designFilePreview" class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hidden">
-                        <img id="designFilePreviewImg" src="" alt="معاينة الصورة" class="w-32 h-32 object-cover rounded-lg mx-auto" />
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">المواصفات</label>
-                    <textarea id="designSpecifications" name="specifications" rows="3"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="اكتب تفاصيل المواصفات"></textarea>
-                </div>
-
-                <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Asset Type</label>
-                        <select id="designAssetTypeId" name="asset_type_id"
-                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                            <option value="">اختر نوع الأصول</option>
-                        </select>
-                    </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- الصورة -->
                     <div>
-                    <textarea id="designAdminNotes" name="admin_notes" rows="3"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="أي ملاحظات إضافية"></textarea>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">صورة العنصر (إن وجد)</label>
+                        <input type="file" id="elementImage" accept="image/*"
+                            class="w-full text-xs text-gray-500 file:ml-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                        <!-- Image Preview Box -->
+                        <div id="elementImagePreviewContainer" class="mt-2 hidden">
+                            <p class="text-[10px] text-gray-400 mb-1">الصورة الحالية:</p>
+                            <img id="elementImagePreview" src="" class="w-16 h-16 rounded-lg object-cover border border-gray-200 shadow-sm" />
+                        </div>
+                    </div>
+                    <!-- اللون -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">لون العنصر (إن وجد)</label>
+                        <input type="color" id="elementColor" value="#000000"
+                            class="w-full h-[46px] p-1 border border-gray-300 rounded-xl cursor-pointer">
+                        <!-- Checkbox to decide if we use color -->
+                        <div class="mt-1 flex items-center gap-2">
+                            <input type="checkbox" id="useElementColor" class="w-4 h-4 text-blue-600 rounded border-gray-300">
+                            <label for="useElementColor" class="text-xs text-gray-500">تضمين اللون في الحفظ</label>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="xl:col-span-2">
-                    <button id="itemDesignSubmitButton" type="submit"
-                        class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">حفظ التصميم</button>
+                <!-- المواصفات -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">المواصفات الفنية / ملاحظات</label>
+                    <textarea id="elementSpecs" rows="2" placeholder="أدخل تفاصيل إضافية..."
+                        class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none text-right resize-y"></textarea>
+                </div>
+
+                <!-- حالة الموافقة -->
+                <div class="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    <input type="checkbox" id="elementIsApproved" checked class="w-5 h-5 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer">
+                    <label for="elementIsApproved" class="text-sm font-semibold text-gray-700 cursor-pointer select-none">العنصر موافق عليه (سيظهر في الجدول)</label>
+                </div>
+
+                <!-- أزرار الحفظ والإغلاق -->
+                <div class="flex justify-end gap-3 border-t pt-4 mt-4">
+                    <button type="button" onclick="closeManageElementsModal()"
+                        class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-6 py-3 rounded-xl transition duration-150 select-none">
+                        إلغاء
+                    </button>
+                    <button type="submit" id="submitAddElementBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition duration-150 shadow-md shadow-blue-100 hover:shadow-lg active:scale-95 flex items-center gap-2 select-none">
+                        <svg id="submitElementSpinner" class="hidden animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>حفظ العنصر</span>
+                    </button>
                 </div>
             </form>
         </div>
-
-        <div class="bg-white rounded-xl shadow-lg overflow-x-auto">
-            <table class="w-full text-right min-w-[600px]">
-                <thead class="bg-gray-50 border-b">
-                    <tr>
-                        <th class="p-4 text-gray-600 font-bold">اسم العنصر</th>
-                    <th class="p-4 text-gray-600 font-bold">صورة الملف</th>
-                    <th class="p-4 text-gray-600 font-bold">المواصفات</th>
-                    <th class="p-4 text-gray-600 font-bold">Asset Type</th>
-                    <th class="p-4 text-gray-600 font-bold">رقم النسخة</th>
-                    <th class="p-4 text-gray-600 font-bold">حالة الموافقة</th>
-                    <th class="p-4 text-gray-600 font-bold">تاريخ الإنشاء</th>
-                    <th class="p-4 text-gray-600 font-bold">ملاحظات الإدارة</th>
-                    <th class="p-4 text-gray-600 font-bold text-left">الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody id="itemDesignsTableBody"></tbody>
-            </table>
-        </div>
     </div>
 
-    <!-- Modal for editing -->
-    <div id="editDesignModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">تعديل التصميم</h3>
-                <form id="editDesignForm" class="space-y-4">
-                    <input type="hidden" id="editDesignId">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">العنصر المرتبط</label>
-                        <select id="editDesignItemId" name="item_id" required
-                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                            <option value="">اختر العنصر</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">رقم النسخة</label>
-                        <input id="editDesignVersionNumber" name="version_number" type="number" min="1" required
-                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">حالة الموافقة</label>
-                        <select id="editDesignIsApproved" name="is_approved" required
-                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                            <option value="false">غير موافق عليه</option>
-                            <option value="true">موافق عليه</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">صورة التصميم</label>
-                        <input id="editDesignFile" type="file" accept="image/*"
-                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white" />
-                        <div id="editDesignFilePreview" class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hidden">
-                            <img id="editDesignFilePreviewImg" src="" alt="معاينة الصورة" class="w-32 h-32 object-cover rounded-lg mx-auto" />
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">المواصفات</label>
-                        <textarea id="editDesignSpecifications" name="specifications" rows="3"
-                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Asset Type</label>
-                        <select id="editDesignAssetTypeId" name="asset_type_id"
-                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                            <option value="">اختر نوع الأصول</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">ملاحظات الإدارة</label>
-                        <textarea id="editDesignAdminNotes" name="admin_notes" rows="3"
-                            class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
-                    </div>
-                    <div class="flex justify-end space-x-2">
-                        <button type="button" onclick="closeEditModal()"
-                            class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">إلغاء</button>
-                        <button id="editDesignSubmitButton" type="submit"
-                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">حفظ التعديل</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <script src="../js/App.js"></script>
     <script src="../js/item_designs.js"></script>
 </body>
-
 </html>

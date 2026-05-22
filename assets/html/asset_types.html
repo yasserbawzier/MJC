@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة أنواع الأصول (Asset Types)</title>
+    <link rel="stylesheet" href="../css/tailwind.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-gray-100 p-8 font-cairo">
+    <div class="max-w-4xl mx-auto">
+        <div class="mb-6 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-gray-800">إدارة أنواع الأصول</h1>
+            <a href="javascript:history.back()" class="bg-gray-600 text-white px-5 py-2 rounded-lg hover:bg-gray-700 transition font-bold">رجوع</a>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">إضافة نوع جديد</h2>
+            <form id="addAssetTypeForm" class="flex gap-4">
+                <input type="text" id="assetTypeName" required placeholder="اسم النوع (مثال: خط، خلفية، شعار...)" 
+                    class="flex-1 border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition font-bold shadow-sm">إضافة</button>
+            </form>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <table class="w-full text-right">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="p-4 text-gray-600 font-bold">اسم النوع</th>
+                        <th class="p-4 text-gray-600 font-bold w-32 text-center">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="assetTypesTableBody">
+                    <tr><td colspan="2" class="p-4 text-center text-gray-500">جاري التحميل...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script src="../js/App.js"></script>
+    <script src="../js/asset_types.js"></script>
+</body>
+</html>
