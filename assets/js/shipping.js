@@ -1,36 +1,11 @@
 // متغيرات عامة للشحن
 let shippingRates = [];
 let currentEditingShippingId = null;
-let currentLimit = 50; // لعرض 50 عنصر كحد أقصى مبدئياً لزيادة سرعة العرض
+let shipCurrentLimit = 50; // لعرض 50 عنصر كحد أقصى مبدئياً لزيادة سرعة العرض
 
 // نظام إشعارات ذكي لترتيب التنبيهات فوق بعضها
 function showToast(message, type = 'info') {
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        document.body.appendChild(container);
-    }
-    const toast = document.createElement('div');
-    toast.className = `toast-item ${type} hidden-toast`;
-    toast.innerHTML = message;
-    container.appendChild(toast);
-    
-    // تأخير بسيط للسماح للحركة (Animation) بالعمل
-    setTimeout(() => {
-        toast.classList.remove('hidden-toast');
-    }, 10);
-    
-    return {
-        update: (newMessage, newType) => {
-            toast.className = `toast-item ${newType}`;
-            toast.innerHTML = newMessage;
-        },
-        remove: () => {
-            toast.classList.add('hidden-toast');
-            setTimeout(() => toast.remove(), 300);
-        }
-    };
+    return window.showNotification(message, type);
 }
 
 // إنشاء صف الشحن من القالب (Template) لزيادة السرعة
@@ -88,7 +63,7 @@ function renderShippingTable() {
     const fragment = document.createDocumentFragment();
     
     // جلب العناصر المسموح بعرضها فقط (50 عنصر مبدئياً)
-    const ratesToShow = shippingRates.slice(0, currentLimit);
+    const ratesToShow = shippingRates.slice(0, shipCurrentLimit);
 
     ratesToShow.forEach(rate => {
         const row = createShippingRow(rate);
@@ -96,12 +71,12 @@ function renderShippingTable() {
     });
     
     // إذا كان هناك عناصر أخرى لم تُعرض بعد، نضيف زر "عرض المزيد"
-    if (shippingRates.length > currentLimit) {
+    if (shippingRates.length > shipCurrentLimit) {
         const loadMoreRow = document.createElement('tr');
         loadMoreRow.innerHTML = `
             <td colspan="4" class="p-4 text-center">
                 <button onclick="loadMoreShippingRates()" class="bg-blue-50 border border-blue-200 text-blue-700 px-6 py-2 rounded-full font-bold hover:bg-blue-100 transition-all shadow-sm">
-                    عرض المزيد من الدول (متبقي ${shippingRates.length - currentLimit})
+                    عرض المزيد من الدول (متبقي ${shippingRates.length - shipCurrentLimit})
                 </button>
             </td>
         `;
@@ -113,7 +88,7 @@ function renderShippingTable() {
 
 // دالة لزيادة عدد العناصر المعروضة عند الضغط على زر عرض المزيد
 function loadMoreShippingRates() {
-    currentLimit += 50;
+    shipCurrentLimit += 50;
     renderShippingTable();
 }
 

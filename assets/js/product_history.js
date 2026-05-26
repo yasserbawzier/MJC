@@ -126,7 +126,7 @@ async function fetchHistoryData(itemName) {
     const { data: designs, error: designsError } = await _supabase.from('design_assets')
         .select(`
             id, design_id, design_details, created_at,
-            design_elements ( id, design_asset_id, asset_type_id, image_url, color_code, additional_specifications, is_approved, display_order, asset_types(name) )
+            design_elements ( id, design_asset_id, asset_type_id, image_url, color_code, additional_specifications, is_approved, display_order, created_at, asset_types(name) )
         `)
         .in('design_id', photoIds)
         .order('created_at', { ascending: false });
@@ -140,6 +140,7 @@ async function fetchHistoryData(itemName) {
  */
 function processHistoryData(photos, designs, invoiceItems) {
     const categories = {
+        'صورة العميل المرجعية': [],
         'الديزاين الأساسي': [],
         'الدايلن الأساسي': []
     };
@@ -148,31 +149,58 @@ function processHistoryData(photos, designs, invoiceItems) {
     
     State.elementsMap = {}; // Reset state for fresh load
 
-    designs.forEach(design => {
-        const photo = photos.find(p => p.id === design.design_id);
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentInvoiceId = urlParams.get('invoice_id');
+
+    // Process all photos first to ensure we don't miss images if a design_asset row is missing
+    photos.forEach(photo => {
         const invItem = invoiceItems.find(i => i.id === photo.item_id);
+        const design = designs.find(d => d.design_id === photo.id) || {};
         
         const meta = { 
             invNum: invItem?.invoices?.invoice_number || '-', 
             invDate: invItem?.invoices ? new Date(invItem.invoices.created_at).toLocaleDateString('en-GB') : '-', 
-            details: design.design_details 
+            details: design.design_details || ''
         };
 
-        // Determine Top Image
-        if (photo.client_photo_url && !topImageUrl && !photo.design_photo_url) {
-            topImageUrl = photo.client_photo_url;
+        const isCurrentInvoice = invItem?.invoice_id === currentInvoiceId;
+
+        if (photo.client_photo_url) {
+            categories['صورة العميل المرجعية'].push({ url: photo.client_photo_url, meta, isCurrent: isCurrentInvoice });
         }
-        
         if (photo.design_photo_url) {
-            categories['الديزاين الأساسي'].push({ url: photo.design_photo_url, meta });
-            if (!topImageUrl) topImageUrl = photo.design_photo_url;
+            categories['الديزاين الأساسي'].push({ url: photo.design_photo_url, meta, isCurrent: isCurrentInvoice });
         }
-        
         if (photo.dieline_photo_url) {
-            categories['الدايلن الأساسي'].push({ url: photo.dieline_photo_url, meta });
+            categories['الدايلن الأساسي'].push({ url: photo.dieline_photo_url, meta, isCurrent: isCurrentInvoice });
         }
 
-        // Process Elements
+        // Prioritize topImageUrl from the current invoice if possible
+        if (isCurrentInvoice) {
+            if (photo.design_photo_url) topImageUrl = photo.design_photo_url;
+            else if (photo.client_photo_url && !topImageUrl) topImageUrl = photo.client_photo_url;
+        } else if (!topImageUrl) {
+            if (photo.design_photo_url) topImageUrl = photo.design_photo_url;
+            else if (photo.client_photo_url) topImageUrl = photo.client_photo_url;
+        }
+    });
+
+    // Sort categories so current invoice items appear at the top
+    Object.keys(categories).forEach(key => {
+        categories[key].sort((a, b) => (b.isCurrent ? 1 : 0) - (a.isCurrent ? 1 : 0));
+    });
+
+    // Process Elements from designs
+    designs.forEach(design => {
+        const photo = photos.find(p => p.id === design.design_id);
+        const invItem = invoiceItems.find(i => i.id === photo?.item_id);
+        
+        const meta = { 
+            invNum: invItem?.invoices?.invoice_number || '-', 
+            invDate: invItem?.invoices ? new Date(invItem.invoices.created_at).toLocaleDateString('en-GB') : '-', 
+            details: design.design_details || ''
+        };
+
         const allElements = design.design_elements || [];
         allElements.forEach(el => {
             const typeName = el.asset_types?.name || 'عنصر غير محدد';
@@ -187,6 +215,7 @@ function processHistoryData(photos, designs, invoiceItems) {
                 specs: el.additional_specifications,
                 is_approved: el.is_approved,
                 display_order: el.display_order || 1,
+                created_at_date: el.created_at ? new Date(el.created_at).toLocaleDateString('en-GB') : meta.invDate,
                 meta
             };
             
@@ -306,7 +335,7 @@ function createElementCardTemplate(el) {
                 <div class="flex flex-col items-end shrink-0">
                     <span class="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-t-md shadow-sm font-extrabold border border-blue-100 border-b-0 w-full text-center">تصميم #${el.display_order}</span>
                     <span class="text-[9px] text-gray-600 bg-white px-2 py-0.5 shadow-sm font-bold border border-gray-100 border-b-0 w-full text-center">ف #${el.meta.invNum}</span>
-                    <span class="text-[8px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-b-md shadow-sm border border-gray-100 font-mono w-full text-center">${el.meta.invDate}</span>
+                    <span class="text-[8px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-b-md shadow-sm border border-gray-100 font-mono w-full text-center">${el.created_at_date}</span>
                 </div>
             </div>
             ${imgHtml}
@@ -477,6 +506,12 @@ function setupEventListeners() {
 
             const { error } = await _supabase.from('design_elements').update(payload).eq('id', editId);
             if (error) throw error;
+
+            // Sync details to invoice items
+            const targetElement = State.elementsMap[editId];
+            if (targetElement && window.syncDesignDetailsToInvoice) {
+                await window.syncDesignDetailsToInvoice(targetElement.design_asset_id);
+            }
 
             closeManageElementsModal();
             await loadHistory(); 

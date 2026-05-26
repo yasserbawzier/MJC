@@ -1,38 +1,1061 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
-    <title>الصفحة الرئيسية</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم | النظام الموحد</title>
     <link rel="stylesheet" href="assets/css/tailwind.css">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/index.css">
 </head>
-<body class="bg-gray-100 p-8">
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">الصفحة الرئيسية - نظام الإدارة</h1>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
-            <a href="assets/html/catalog.html" class="bg-gradient-to-tr from-amber-500 to-orange-600 text-white px-6 py-4 rounded-xl hover:from-amber-600 hover:to-orange-700 text-center font-extrabold shadow-md hover:shadow-lg transition duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 md:col-span-3 text-lg">
-                📖 الكتالوج الموحد للمنتجات (عرض الكتالوج)
-            </a>
-            <a href="assets/html/commissions.html" class="bg-blue-600 text-white px-6 py-4 rounded-lg hover:bg-blue-700 text-center font-semibold transition duration-300">
-                إدارة العمولات
-            </a>
-            <a href="assets/html/customers.html" class="bg-blue-600 text-white px-6 py-4 rounded-lg hover:bg-blue-700 text-center font-semibold transition duration-300">
-                إدارة العملاء
-            </a>
-            <a href="assets/html/invoices.html" class="bg-blue-600 text-white px-6 py-4 rounded-lg hover:bg-blue-700 text-center font-semibold transition duration-300">
-                إدارة الفواتير
-            </a>
-            <!-- تمت الإضافة هنا: أغلقنا وسم <a> الخاص بإدارة الفواتير لتصحيح خطأ HTML يمنع المتصفح من تفسير الروابط بشكل صحيح -->
-            <a href="assets/html/product_types.html" class="bg-blue-600 text-white px-6 py-4 rounded-lg hover:bg-blue-700 text-center font-semibold transition duration-300">
-                أنواع المنتجات
-            </a>
-            <a href="assets/html/products.html" class="bg-blue-600 text-white px-6 py-4 rounded-lg hover:bg-blue-700 text-center font-semibold transition duration-300">
-                المنتجات
-            </a>
-            <a href="assets/html/shipping.html" class="bg-blue-600 text-white px-6 py-4 rounded-lg hover:bg-blue-700 text-center font-semibold transition duration-300">
-                الشحن
-            </a>
+
+<body class="bg-gray-100 flex h-screen text-gray-800 font-sans selection:bg-blue-200">
+
+    <!-- القائمة الجانبية (Sidebar) -->
+    <aside id="main-sidebar"
+        class="w-72 bg-slate-900 text-white flex flex-col shadow-2xl z-20 relative transition-all duration-300 sidebar">
+
+        <!-- شعار النظام وزر الطي -->
+        <div
+            class="h-20 flex items-center justify-start border-b border-slate-700/50 bg-slate-950/30 overflow-hidden px-5 header-container gap-4">
+            <h1 class="text-2xl font-extrabold text-white tracking-wider flex items-center gap-3">
+                <svg class="w-8 h-8 text-blue-500 flex-shrink-0 sidebar-logo-icon transition-all" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                    </path>
+                </svg>
+                <span class="sidebar-text sidebar-logo-text whitespace-nowrap">نظام الإدارة</span>
+            </h1>
+            <button onclick="toggleSidebar()"
+                class="text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all p-1.5 flex-shrink-0 focus:outline-none sidebar-toggle-btn mr-6">
+                <svg class="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+                    </path>
+                </svg>
+            </button>
         </div>
-    </div>
+
+        <!-- روابط القائمة -->
+        <nav class="flex-1 px-4 py-6 sidebar-scroll space-y-2 overflow-x-hidden" id="sidebar-nav">
+
+            <p
+                class="sidebar-text text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-4 px-2 whitespace-nowrap">
+                العمليات الرئيسية</p>
+
+            <a href="#invoices" data-tooltip="إدارة الفواتير"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium">
+                <svg class="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+                <span class="sidebar-text whitespace-nowrap">إدارة الفواتير</span>
+            </a>
+
+            <a href="#commissions" data-tooltip="إدارة العمولات"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium">
+                <svg class="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                    </path>
+                </svg>
+                <span class="sidebar-text whitespace-nowrap">إدارة العمولات</span>
+            </a>
+
+            <p
+                class="sidebar-text text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6 px-2 whitespace-nowrap">
+                العملاء والمنتجات</p>
+
+            <a href="#customers" data-tooltip="إدارة العملاء"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium">
+                <svg class="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                    </path>
+                </svg>
+                <span class="sidebar-text whitespace-nowrap">إدارة العملاء</span>
+            </a>
+
+            <a href="#catalog" data-tooltip="الكتالوج الموحد"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium">
+                <svg class="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z">
+                    </path>
+                </svg>
+                <span class="sidebar-text whitespace-nowrap">الكتالوج الموحد</span>
+            </a>
+
+            <a href="#products" data-tooltip="المنتجات"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium">
+                <svg class="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+                <span class="sidebar-text whitespace-nowrap">المنتجات</span>
+            </a>
+
+            <p
+                class="sidebar-text text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6 px-2 whitespace-nowrap">
+                الإعدادات</p>
+
+            <a href="#product_types" data-tooltip="أنواع المنتجات"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium">
+                <svg class="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z">
+                    </path>
+                </svg>
+                <span class="sidebar-text whitespace-nowrap">أنواع المنتجات</span>
+            </a>
+
+            <a href="#shipping" data-tooltip="إعدادات الشحن"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium mb-6">
+                <svg class="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                    </path>
+                </svg>
+                <span class="sidebar-text whitespace-nowrap">إعدادات الشحن</span>
+            </a>
+
+        </nav>
+
+        <!-- معلومات المستخدم في الأسفل -->
+        <div class="p-4 border-t border-slate-700/50 bg-slate-950/30 overflow-hidden">
+            <div class="flex items-center gap-3 justify-center">
+                <div
+                    class="w-10 h-10 flex-shrink-0 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/30">
+                    AD
+                </div>
+                <div class="sidebar-text user-info-text whitespace-nowrap w-full">
+                    <p class="text-sm font-bold text-white">المدير العام</p>
+                    <p class="text-xs text-slate-400">متصل الآن</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- المنطقة اليمنى (الشريط العلوي + المحتوى) -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-gray-100 relative">
+
+        <!-- منطقة الـ SPA -->
+        <div id="app-content" class="flex-1 relative w-full h-full overflow-y-auto p-8">
+
+            <!-- SECTION: INVOICES -->
+            <section id="section-invoices" class="page-section hidden">
+                <div class="max-w-7xl mx-auto">
+                    <!-- الرأس -->
+                    <header class="flex justify-between items-center mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-800">إدارة الفواتير</h1>
+                            <p class="text-sm text-gray-500 mt-1">تتبع وإدارة جميع فواتير العملاء وعناصر الشحن من مكان
+                                واحد.</p>
+                        </div>
+                        <button onclick="InvoicesUI.showAddInvoiceModal()"
+                            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            إنشاء فاتورة جديدة
+                        </button>
+                    </header>
+
+                    <div class="bg-white rounded-xl shadow-lg p-4 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">الفترة الزمنية</label>
+                                <select id="invoicePeriodFilter"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="week" selected>آخر أسبوع</option>
+                                    <option value="month">آخر شهر</option>
+                                    <option value="all">كل الفواتير</option>
+                                </select>
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">بحث</label>
+                                <input type="text" id="invoiceSearchInput"
+                                    placeholder="ابحث برقم الفاتورة أو Customer ID أو وجهة الشحن"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-lg overflow-x-auto invoices-table-wrapper">
+                        <table class="min-w-[900px] w-full text-right whitespace-nowrap" dir="rtl">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="p-4 text-gray-600 font-bold">رقم الفاتورة</th>
+                                    <th class="p-4 text-gray-600 font-bold">معرف العميل</th>
+                                    <th class="p-4 text-gray-600 font-bold">اسم العميل</th>
+                                    <th class="p-4 text-gray-600 font-bold">وجهة الشحن</th>
+                                    <th class="p-4 text-gray-600 font-bold">عنوان الشحن</th>
+                                    <th class="p-4 text-gray-600 font-bold">نسبة العمولة</th>
+                                    <th class="p-4 text-gray-600 font-bold">السعر لكل CBM</th>
+                                    <th class="p-4 text-gray-600 font-bold text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoicesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="addInvoiceModal"
+                    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 overflow-hidden">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">إضافة فاتورة</h2>
+                        <form id="addInvoiceForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
+                                <input type="text" id="invoiceNumber" readonly
+                                    class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 text-gray-500 cursor-not-allowed"
+                                    placeholder="سيتم توليده تلقائيًا">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                                <select id="invoiceCustomerId" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Destination</label>
+                                <select id="invoiceShippingDestinationId" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Address
+                                    Text</label>
+                                <input type="text" id="invoiceShippingAddressText"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Commission</label>
+                                <select id="invoiceCommissionId" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Date</label>
+                                <input type="date" id="invoiceDate"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Price Per CBM</label>
+                                <input type="text" value="يتم تعبئته تلقائيا من قاعدة البيانات" disabled
+                                    class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 text-gray-500">
+                            </div>
+                            <div class="flex justify-end space-x-3 mt-8 gap-2">
+                                <button type="button" onclick="InvoicesUI.closeAddInvoiceModal()"
+                                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                                <button type="submit"
+                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="editInvoiceModal"
+                    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 overflow-hidden">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">تعديل فاتورة</h2>
+                        <form id="editInvoiceForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
+                                <input type="text" id="editInvoiceNumber" readonly
+                                    class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 text-gray-500 cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                                <select id="editInvoiceCustomerId" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Destination</label>
+                                <select id="editInvoiceShippingDestinationId" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Address
+                                    Text</label>
+                                <input type="text" id="editInvoiceShippingAddressText"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Commission</label>
+                                <select id="editInvoiceCommissionId" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Date</label>
+                                <input type="date" id="editInvoiceDate"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Price Per CBM</label>
+                                <input type="text" id="editPricePerCbmPreview" disabled
+                                    class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 text-gray-500">
+                            </div>
+                            <div class="flex justify-end space-x-3 mt-8 gap-2">
+                                <button type="button" onclick="InvoicesUI.closeEditInvoiceModal()"
+                                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                                <button type="submit"
+                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ
+                                    التعديلات</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <template id="invoiceRowTemplate">
+                    <tr class="border-b hover:bg-blue-50 transition relative group text-left">
+                        <td class="p-4 number-cell"></td>
+                        <td class="p-4 customer-id-cell"></td>
+                        <td class="p-4 customer-name-cell"></td>
+                        <td class="p-4 shipping-destination-cell"></td>
+                        <td class="p-4 shipping-address-cell"></td>
+                        <td class="p-4 commission-cell"></td>
+                        <td class="p-4 price-cell"></td>
+                        <td class="p-4 text-left whitespace-nowrap actions-cell">
+                            <button
+                                class="edit-btn opacity-100 md:opacity-0 md:group-hover:opacity-100 bg-blue-600 text-white px-3 py-1 rounded shadow-sm hover:bg-blue-700 transition-all text-sm ml-2">تعديل</button>
+                            <button
+                                class="add-items-btn opacity-100 md:opacity-0 md:group-hover:opacity-100 bg-green-600 text-white px-3 py-1 rounded shadow-sm hover:bg-green-700 transition-all text-sm ml-2">إضافة
+                                عناصر</button>
+                            <button
+                                class="commissions-btn opacity-100 md:opacity-0 md:group-hover:opacity-100 bg-yellow-500 text-white px-3 py-1 rounded shadow-sm hover:bg-yellow-600 transition-all text-sm ml-2">العمولات</button>
+                            <button
+                                class="delete-btn opacity-100 md:opacity-0 md:group-hover:opacity-100 bg-red-600 text-white px-3 py-1 rounded shadow-sm hover:bg-red-700 transition-all text-sm">حذف</button>
+                        </td>
+                    </tr>
+                </template>
+            </section>
+
+            <!-- SECTION: COMMISSIONS -->
+            <section id="section-commissions" class="page-section hidden">
+                <div class="max-w-5xl mx-auto">
+                    <!-- الرأس -->
+                    <div
+                        class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shadow-inner">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 class="text-2xl font-bold text-gray-800">إدارة أنواع ونسب العمولات</h1>
+                                <p class="text-sm text-gray-500 mt-1">أضف، عدّل، واحذف نسب العمولات التي ستظهر عند إنشاء
+                                    فواتير جديدة.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- إضافة عمولة جديدة -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">إضافة عمولة جديدة</h2>
+                        <form id="addCommissionForm" class="flex flex-col sm:flex-row items-end gap-4">
+                            <div class="flex-1 w-full">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">النسبة ككسر (مثال: 0.15 لـ
+                                    15%)</label>
+                                <input type="number" step="0.001" id="newCommissionRate" required placeholder="0.00"
+                                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow text-left"
+                                    dir="ltr">
+                            </div>
+                            <button type="submit"
+                                class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                <span>إضافة النسبة</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- جدول العمولات -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-right border-collapse">
+                                <thead class="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th class="p-4 text-gray-600 font-bold text-sm">م</th>
+                                        <th class="p-4 text-gray-600 font-bold text-sm text-left">النسبة المئوية (%)
+                                        </th>
+                                        <th class="p-4 text-gray-600 font-bold text-sm text-left">النسبة (عشري)</th>
+                                        <th class="p-4 text-gray-600 font-bold text-sm text-center">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="commissionsTableBody" class="divide-y divide-gray-100">
+                                    <tr>
+                                        <td colspan="4" class="p-8 text-center text-gray-500">جاري تحميل البيانات...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: CUSTOMERS -->
+            <section id="section-customers" class="page-section hidden">
+                <div class="max-w-7xl mx-auto">
+                    <!-- الرأس -->
+                    <div
+                        class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shadow-inner">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 class="text-2xl font-bold text-gray-800">إدارة العملاء</h1>
+                                <p class="text-sm text-gray-500 mt-1">إضافة وتعديل بيانات العملاء.</p>
+                            </div>
+                        </div>
+
+                        <button onclick="showAddModal()"
+                            class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            <span>إضافة عميل</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-lg table-wrapper overflow-x-auto">
+                        <table class="min-w-[900px] w-full text-center whitespace-nowrap" dir="ltr">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="p-4 text-gray-600 font-bold">customer ID</th>
+                                    <th class="p-4 text-gray-600 font-bold">Name</th>
+                                    <th class="p-4 text-gray-600 font-bold">Phone</th>
+                                    <th class="p-4 text-gray-600 font-bold">Country</th>
+                                    <th class="p-4 text-gray-600 font-bold">Company Name</th>
+                                    <th class="p-4 text-gray-600 font-bold">Company Field</th>
+                                    <th class="p-4 text-gray-600 font-bold">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customersTableBody" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="addCustomerModal"
+                    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 overflow-hidden">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">إضافة عميل جديد</h2>
+                        <form id="addCustomerForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">الاسم الكامل</label>
+                                <input type="text" id="custName" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
+                                <input type="text" id="custPhone"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">الدولة</label>
+                                <input type="text" id="custCountry"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">اسم الشركة</label>
+                                <input type="text" id="custCompanyName"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">مجال الشركة</label>
+                                <input type="text" id="custField"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div class="flex justify-end space-x-3 mt-8 gap-2">
+                                <button type="button" onclick="closeAddModal()"
+                                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                                <button type="submit"
+                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ
+                                    العميل</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="editCustomerModal"
+                    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 overflow-hidden">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">تعديل بيانات العميل</h2>
+                        <form id="editCustomerForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">الاسم الكامل</label>
+                                <input type="text" id="editCustName" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
+                                <input type="text" id="editCustPhone"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">الدولة</label>
+                                <input type="text" id="editCustCountry"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">اسم الشركة</label>
+                                <input type="text" id="editCustCompanyName"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">مجال الشركة</label>
+                                <input type="text" id="editCustField"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div class="flex justify-end space-x-3 mt-8 gap-2">
+                                <button type="button" onclick="closeEditModal()"
+                                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                                <button type="submit"
+                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ
+                                    التعديلات</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: PRODUCTS -->
+            <section id="section-products" class="page-section hidden">
+                <div class="max-w-7xl mx-auto">
+                    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-800">إدارة المنتجات</h1>
+                            <p class="text-gray-600 mt-2">أضف منتجاً واختر نوعه مباشرة من نفس الصفحة.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="showAddProductTypeModal()"
+                                class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">إضافة نوع
+                                منتج</button>
+                            <a href="#product_types"
+                                class="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-300">عرض أنواع
+                                المنتجات</a>
+                        </div>
+                    </header>
+
+                    <div class="bg-white rounded-xl shadow-lg p-4 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">بحث باسم المنتج</label>
+                                <input id="productSearchInput" type="text" placeholder="ابحث عن منتج"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">فلترة بحسب النوع</label>
+                                <select id="productTypeFilter"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="showAddProductModal()"
+                                    class="w-full bg-blue-600 text-white font-bold py-[9px] px-4 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    إضافة منتج جديد
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-lg table-wrapper overflow-x-auto">
+                        <table class="min-w-[1200px] w-full text-left whitespace-nowrap" dir="ltr">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="p-4 text-gray-600 font-bold">Product Custom ID</th>
+                                    <th class="p-4 text-gray-600 font-bold">Product Name</th>
+                                    <th class="p-4 text-gray-600 font-bold">Image</th>
+                                    <th class="p-4 text-gray-600 font-bold">Specifications</th>
+                                    <th class="p-4 text-gray-600 font-bold">Sample Details</th>
+                                    <th class="p-4 text-gray-600 font-bold">MOQ</th>
+                                    <th class="p-4 text-gray-600 font-bold">Days of Manufacturing</th>
+                                    <th class="p-4 text-gray-600 font-bold">Video URL</th>
+                                    <th class="p-4 text-gray-600 font-bold">Type</th>
+                                    <th class="p-4 text-gray-600 font-bold text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody"></tbody>
+
+                        </table>
+                    </div>
+                </div>
+
+                <div id="addProductModal"
+                    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 overflow-hidden">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">إضافة منتج جديد</h2>
+                        <form id="addProductForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">اسم المنتج</label>
+                                <input type="text" id="newProductName" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">النوع</label>
+                                <select id="newProductTypeId"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">المواصفات</label>
+                                <textarea id="newProductSpecs" rows="2"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">MOQ</label>
+                                    <input type="number" id="newProductMoq"
+                                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">أيام التصنيع</label>
+                                    <input type="number" id="newProductDays"
+                                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-2 mt-4">
+                                <button type="button" onclick="closeAddProductModal()"
+                                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                                <button type="submit"
+                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">إضافة
+                                    المنتج</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="addProductTypeModal"
+                    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 overflow-hidden">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">إضافة نوع منتج</h2>
+                        <form id="addProductTypeForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">اسم النوع</label>
+                                <input type="text" id="newTypeName" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">وصف النوع</label>
+                                <textarea id="newTypeDescription" rows="3"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                            </div>
+                            <div class="flex justify-end gap-2 mt-4">
+                                <button type="button" onclick="closeAddProductTypeModal()"
+                                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                                <button type="submit"
+                                    class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">إضافة
+                                    النوع</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="imagePreviewModal"
+                    class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+                    <div class="relative bg-transparent rounded-xl max-w-4xl w-full">
+                        <button onclick="closeImageModal()"
+                            class="absolute top-4 left-4 bg-white rounded-full p-2 shadow-md text-gray-700 hover:bg-gray-100">X</button>
+                        <img id="modalPreviewImage" src="" alt="معاينة الصورة الكبيرة"
+                            class="w-full h-auto rounded-xl shadow-2xl object-contain max-h-[90vh] mx-auto">
+                    </div>
+                </div>
+
+                <div id="photoActionsModal"
+                    class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <div
+                        class="bg-white rounded-2xl shadow-2xl p-6 w-96 max-w-full relative border border-gray-100 text-right">
+                        <button type="button" onclick="closePhotoActionsModal()"
+                            class="absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                        <h3 class="text-lg font-bold text-gray-800 text-center mb-6" id="photoActionsTitle">خيارات الملف
+                        </h3>
+                        <div class="space-y-4">
+                            <button type="button" id="viewPhotoActionBtn"
+                                class="w-full flex items-center justify-between p-4 rounded-xl border border-blue-100 bg-blue-50 hover:bg-blue-100 text-blue-900 font-semibold transition-all duration-200 group">
+                                <svg class="w-5 h-5 text-blue-400 transform group-hover:translate-x-[-4px] transition-transform"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                                <span class="flex items-center gap-3">
+                                    <span class="p-2 rounded-lg bg-blue-500 text-white shadow-md shadow-blue-200">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                                            </path>
+                                        </svg>
+                                    </span>
+                                    <span id="viewPhotoActionText">عرض الملف</span>
+                                </span>
+                            </button>
+                            <button type="button" id="uploadPhotoActionBtn"
+                                class="w-full flex items-center justify-between p-4 rounded-xl border border-green-100 bg-green-50 hover:bg-green-100 text-green-900 font-semibold transition-all duration-200 group">
+                                <svg class="w-5 h-5 text-green-400 transform group-hover:translate-x-[-4px] transition-transform"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                                <span class="flex items-center gap-3">
+                                    <span class="p-2 rounded-lg bg-green-500 text-white shadow-md shadow-green-200">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12">
+                                            </path>
+                                        </svg>
+                                    </span>
+                                    <span id="uploadPhotoActionText">رفع ملف جديد</span>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="videoPreviewModal"
+                    class="hidden fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+                    <div
+                        class="bg-gray-900 rounded-3xl overflow-hidden shadow-2xl w-full max-w-3xl relative border border-gray-800 flex flex-col">
+                        <button type="button" onclick="closeVideoPreviewModal()"
+                            class="absolute top-4 left-4 text-white hover:text-gray-300 transition w-10 h-10 flex items-center justify-center rounded-full bg-black bg-opacity-40 z-10">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                        <div class="p-6 flex-1 flex flex-col items-center justify-center min-h-[300px]">
+                            <video id="modalPreviewVideo" controls
+                                class="w-full rounded-2xl shadow-lg border border-gray-800 max-h-[70vh] bg-black"></video>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="file" id="hiddenPhotoSelectorInput" class="hidden" />
+
+                <template id="productRowTemplate">
+                    <tr class="border-b hover:bg-blue-50 transition text-left">
+                        <td class="p-4 text-sm text-gray-400 bg-gray-50 font-mono select-none custom-id" dir="ltr"></td>
+                        <td contenteditable="true"
+                            class="p-4 font-medium text-gray-900 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150 name-cell"
+                            dir="ltr"></td>
+                        <td class="p-4 text-center image-cell"></td>
+                        <td contenteditable="true"
+                            class="p-4 text-sm text-gray-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150 whitespace-pre-wrap specs-cell"
+                            dir="ltr"></td>
+                        <td contenteditable="true"
+                            class="p-4 text-sm text-gray-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150 whitespace-pre-wrap sample-cell"
+                            dir="ltr"></td>
+                        <td contenteditable="true"
+                            class="p-4 text-gray-700 font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150 moq-cell"
+                            dir="ltr"></td>
+                        <td contenteditable="true"
+                            class="p-4 text-gray-700 font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 rounded px-1 transition duration-150 days-cell"
+                            dir="ltr"></td>
+                        <td class="p-4 text-center video-cell"></td>
+                        <td class="p-4 type-cell" dir="ltr"></td>
+                        <td class="p-4 text-left whitespace-nowrap select-none actions-cell">
+                            <button
+                                class="delete-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm shadow-sm active:scale-95 transition-all">حذف</button>
+                        </td>
+                    </tr>
+                </template>
+            </section>
+
+            <!-- SECTION: PRODUCT TYPES -->
+            <section id="section-product_types" class="page-section hidden">
+                <div class="max-w-7xl mx-auto">
+                    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-800">Product Types Management / إدارة أنواع المنتجات
+                            </h1>
+                            <p class="text-gray-600 mt-2">View and manage all product types / عرض وإدارة جميع أنواع
+                                المنتجات.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="showAddTypeModal()"
+                                class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Add New Type /
+                                إضافة نوع جديد</button>
+                            <a href="#products"
+                                class="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-300">Back to
+                                Products / العودة إلى المنتجات</a>
+                        </div>
+                    </header>
+
+                    <div class="bg-white rounded-xl shadow-lg table-wrapper">
+                        <table class="min-w-max w-full text-left whitespace-nowrap">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="p-4 text-gray-600 font-bold text-left">Category Name / اسم النوع</th>
+                                    <th class="p-4 text-gray-600 font-bold text-left">Category Description / وصف النوع
+                                    </th>
+                                    <th class="p-4 text-gray-600 font-bold text-left">Date Added / تاريخ الإضافة</th>
+                                    <th class="p-4 text-gray-600 font-bold text-left">Actions / إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productTypesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="addTypeModal"
+                    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 overflow-hidden">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">Add New Type / إضافة نوع جديد</h2>
+                        <form id="addTypeForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Category Name / اسم
+                                    النوع</label>
+                                <input type="text" id="typeName" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Category Description / وصف
+                                    النوع</label>
+                                <textarea id="typeDescription" rows="3"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                            </div>
+                            <div class="flex justify-end gap-2 mt-4">
+                                <button type="button" onclick="closeAddTypeModal()"
+                                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Cancel /
+                                    إلغاء</button>
+                                <button type="submit"
+                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Save Type /
+                                    حفظ النوع</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="editTypeModal"
+                    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 overflow-hidden">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">Edit Type / تعديل النوع</h2>
+                        <form id="editTypeForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Category Name / اسم
+                                    النوع</label>
+                                <input type="text" id="editTypeName" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Category Description / وصف
+                                    النوع</label>
+                                <textarea id="editTypeDescription" rows="3"
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                            </div>
+                            <div class="flex justify-end gap-2 mt-4">
+                                <button type="button" onclick="closeEditTypeModal()"
+                                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Cancel /
+                                    إلغاء</button>
+                                <button type="submit"
+                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Save Changes /
+                                    حفظ التعديلات</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <template id="productTypeRowTemplate">
+                    <tr class="border-b hover:bg-blue-50 transition">
+                        <td class="p-4 text-gray-700 font-medium name-cell"></td>
+                        <td class="p-4 text-sm text-gray-700 description-cell"></td>
+                        <td class="p-4 text-gray-500 date-cell"></td>
+                        <td class="p-4 text-left whitespace-nowrap actions-cell">
+                            <button
+                                class="edit-btn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-sm mr-2 shadow-sm active:scale-95 transition">Edit
+                                / تعديل</button>
+                            <button
+                                class="delete-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm shadow-sm active:scale-95 transition">Delete
+                                / حذف</button>
+                        </td>
+                    </tr>
+                </template>
+            </section>
+
+            <!-- SECTION: SHIPPING -->
+            <section id="section-shipping" class="page-section hidden">
+                <div class="max-w-6xl mx-auto">
+                    <!-- رأس الصفحة -->
+                    <header class="flex justify-between items-center mb-8">
+                        <h1 class="text-3xl font-bold text-gray-800">إدارة تكاليف الشحن</h1>
+                        <!-- زر فتح مودال إضافة سعر شحن -->
+                        <button onclick="showAddShippingModal()"
+                            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                            Add Shipping Rate
+                        </button>
+                    </header>
+
+                    <!-- جدول عرض أسعار الشحن -->
+                    <div class="bg-white rounded-xl shadow-lg table-wrapper">
+                        <table class="min-w-max w-full text-right whitespace-nowrap">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="p-4 text-gray-600 font-bold">Country Name</th>
+                                    <th class="p-4 text-gray-600 font-bold">Country Code</th>
+                                    <th class="p-4 text-gray-600 font-bold">Price per CBM</th>
+                                    <th class="p-4 text-gray-600 font-bold text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shippingTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- مودال إضافة سعر شحن -->
+                <div id="addShippingModal"
+                    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 overflow-hidden">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">إضافة تكلفة شحن</h2>
+                        <form id="addShippingForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">اسم الدولة</label>
+                                <input type="text" id="shipCountryName" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">كود الدولة</label>
+                                <input type="text" id="shipCountryCode" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">السعر لكل CBM</label>
+                                <input type="number" step="0.01" id="shipPricePerCbm" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div class="flex justify-end space-x-3 mt-8 gap-2">
+                                <button type="button" onclick="closeAddShippingModal()"
+                                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                                <button type="submit"
+                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- مودال تعديل سعر الشحن -->
+                <div id="editShippingModal"
+                    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 overflow-hidden">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">تعديل تكلفة الشحن</h2>
+                        <form id="editShippingForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">اسم الدولة</label>
+                                <input type="text" id="editShipCountryName" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">كود الدولة</label>
+                                <input type="text" id="editShipCountryCode" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">السعر لكل CBM</label>
+                                <input type="number" step="0.01" id="editShipPricePerCbm" required
+                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div class="flex justify-end space-x-3 mt-8 gap-2">
+                                <button type="button" onclick="closeEditShippingModal()"
+                                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+                                <button type="submit"
+                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">حفظ
+                                    التعديلات</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <template id="shippingRowTemplate">
+                    <tr class="border-b hover:bg-blue-50 transition">
+                        <td class="p-4 text-gray-900 font-bold name-cell"></td>
+                        <td class="p-4 text-sm text-gray-700 font-mono code-cell" dir="ltr"></td>
+                        <td class="p-4 text-gray-700 font-medium price-cell"></td>
+                        <td class="p-4 text-left whitespace-nowrap actions-cell">
+                            <button
+                                class="edit-btn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-sm ml-2 shadow-sm active:scale-95 transition">تعديل</button>
+                            <button
+                                class="delete-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm shadow-sm active:scale-95 transition">حذف</button>
+                        </td>
+                    </tr>
+                </template>
+            </section>
+
+            <!-- SECTION: DYNAMIC IFRAME FOR SUB-PAGES -->
+            <section id="section-iframe-spa" class="page-section hidden w-full h-full"
+                style="height: calc(100vh - 4rem);">
+                <div class="w-full h-full relative">
+                    <!-- Dynamic Loader Spinner -->
+                    <div id="iframeViewSpinner"
+                        class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 bg-opacity-95 z-10 transition-opacity duration-300">
+                        <svg class="animate-spin h-10 w-10 text-blue-600 mb-3" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        <span class="text-sm font-semibold text-gray-500">جاري تحميل الصفحة تفاعلياً...</span>
+                    </div>
+                    <iframe id="iframeViewLoader" src="" class="w-full h-full border-0" referrerpolicy="no-referrer"
+                        onload="const spinner = document.getElementById('iframeViewSpinner'); if(spinner) spinner.classList.add('hidden')"></iframe>
+                </div>
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- حاوية التنبيهات الموحدة -->
+    <div id="toast-container"></div>
+
+    <script src="assets/js/index.js?v=2.0"></script>
+
+    <!-- السكريبتات المجمعة -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/App.js"></script>
+
+    <!-- APIs -->
+    <script src="assets/Data/js/commissions_api.js"></script>
+    <script src="assets/Data/js/invoices_api.js"></script>
+
+    <!-- UI & Controllers -->
+    <script src="assets/js/commission_rates.js"></script>
+    <script src="assets/js/customers.js"></script>
+    <script src="assets/js/products.js"></script>
+    <script src="assets/js/product_types.js"></script>
+    <script src="assets/js/shipping.js"></script>
+    <script src="assets/Presentation/js/invoices_ui.js?v=2.0"></script>
+    <script src="assets/Controller/js/invoices_controller.js?v=2.0"></script>
+    <script>
+        // Listen for messages from iframes to bypass local file:// protocol CORS blocks securely
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.action === 'closeIframeView') {
+                if (window.InvoicesUI && window.InvoicesUI.closeIframeView) {
+                    window.InvoicesUI.closeIframeView();
+                }
+            }
+        });
+    </script>
 </body>
+
 </html>

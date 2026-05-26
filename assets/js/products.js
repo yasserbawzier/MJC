@@ -1,7 +1,7 @@
 const PRODUCT_IMAGE_BUCKET = 'product-images';
 let products = [];
 let productTypes = [];
-let currentLimit = 55; // لعرض 50 منتج كحد أقصى في البداية
+let prodCurrentLimit = 55; // لعرض 50 منتج كحد أقصى في البداية
 
 
 // متغيرات تتبع الرفع التلقائي السريع للميديا
@@ -12,29 +12,7 @@ let activeMediaUrl = null;
 
 // نظام إشعارات ذكي لترتيب التنبيهات فوق بعضها في حالة الرفع المتعدد
 function showToast(message, type = 'info') {
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        document.body.appendChild(container);
-    }
-    const toast = document.createElement('div');
-    toast.className = `toast-item ${type} hidden-toast`;
-    toast.innerHTML = message;
-    container.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.remove('hidden-toast');
-    }, 10);
-    return {
-        update: (newMessage, newType) => {
-            toast.className = `toast-item ${newType}`;
-            toast.innerHTML = newMessage;
-        },
-        remove: () => {
-            toast.classList.add('hidden-toast');
-            setTimeout(() => toast.remove(), 300);
-        }
-    };
+    return window.showNotification(message, type);
 }
 
 // ضغط الصورة تلقائياً لتقليل الحجم وتسريع الرفع بمعدل 10 أضعاف
@@ -117,9 +95,8 @@ function renderProductTypeFilter() {
 }
 
 function renderProductTypeSelects() {
-    const addSelect = document.getElementById('productTypeId');
-    const editSelect = document.getElementById('editProductTypeId');
-    [addSelect, editSelect].forEach(select => {
+    const addSelect = document.getElementById('newProductTypeId');
+    [addSelect].forEach(select => {
         if (!select) return;
         select.innerHTML = '<option value="">اختر نوع المنتج</option>';
         productTypes.forEach(type => {
@@ -271,12 +248,12 @@ function renderProductsTable() {
     try {
         const searchValue = normalizeText(document.getElementById('productSearchInput').value);
         const typeValue = document.getElementById('productTypeFilter').value;
-        const statusValue = document.getElementById('productStatusFilter').value;
+
         const filtered = products.filter(product => {
             const matchesSearch = !searchValue || normalizeText(product.product_name).includes(searchValue) || normalizeText(product.product_custom_id).includes(searchValue);
             const matchesType = typeValue === 'all' || product.type_id === typeValue;
-            const matchesStatus = statusValue === 'all' || (statusValue === 'hasType' && product.type_id) || (statusValue === 'noType' && !product.type_id);
-            return matchesSearch && matchesType && matchesStatus;
+
+            return matchesSearch && matchesType;
         });
 
         if (filtered.length === 0) {
@@ -286,7 +263,7 @@ function renderProductsTable() {
         const fragment = document.createDocumentFragment();
 
         // جلب المنتجات حسب الحد المسموح به حالياً (مثلاً أول 50 منتج فقط)
-        const productsToShow = filtered.slice(0, currentLimit);
+        const productsToShow = filtered.slice(0, prodCurrentLimit);
 
         productsToShow.forEach(product => {
             const row = createProductRow(product);
@@ -294,12 +271,12 @@ function renderProductsTable() {
         });
 
         // إذا كان هناك منتجات أخرى لم تُعرض بعد، نضيف زر "عرض المزيد"
-        if (filtered.length > currentLimit) {
+        if (filtered.length > prodCurrentLimit) {
             const loadMoreRow = document.createElement('tr');
             loadMoreRow.innerHTML = `
                 <td colspan="10" class="p-4 text-center">
                     <button onclick="loadMoreProducts()" class="bg-blue-50 border border-blue-200 text-blue-700 px-6 py-2 rounded-full font-bold hover:bg-blue-100 transition-all shadow-sm">
-                        عرض المزيد من المنتجات (متبقي ${filtered.length - currentLimit})
+                        عرض المزيد من المنتجات (متبقي ${filtered.length - prodCurrentLimit})
                     </button>
                 </td>
             `;
@@ -473,19 +450,19 @@ async function deleteProduct(id) {
 
 // وظيفة لزيادة عدد المنتجات المعروضة عند الضغط على زر "عرض المزيد"
 function loadMoreProducts() {
-    currentLimit += 50; // زيادة الحد بمقدار 50
+    prodCurrentLimit += 50; // زيادة الحد بمقدار 50
     renderProductsTable(); // إعادة رسم الجدول بالعدد الجديد
 }
 
 // إعادة تعيين الحد إلى 50 عند أي عملية بحث أو تصفية
 function handleFilterChange() {
-    currentLimit = 50;
+    prodCurrentLimit = 50;
     renderProductsTable();
 }
 
 document.getElementById('productSearchInput').addEventListener('input', handleFilterChange);
 document.getElementById('productTypeFilter').addEventListener('change', handleFilterChange);
-document.getElementById('productStatusFilter').addEventListener('change', handleFilterChange);
+
 document.getElementById('addProductTypeForm').addEventListener('submit', addProductType);
 
 // تحديث حقل منتج فردي مباشرة من الجدول (Inline Editing)
@@ -817,3 +794,52 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     }
 });
+
+function showAddProductModal() {
+    document.getElementById('addProductForm').reset();
+    document.getElementById('addProductModal').classList.remove('hidden');
+}
+
+function closeAddProductModal() {
+    document.getElementById('addProductModal').classList.add('hidden');
+}
+
+const addProductForm = document.getElementById('addProductForm');
+if (addProductForm) {
+    addProductForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerText = '���� �����...';
+
+        const newName = document.getElementById('newProductName').value;
+        const newTypeId = document.getElementById('newProductTypeId').value || null;
+        const newSpecs = document.getElementById('newProductSpecs').value;
+        const newMoq = document.getElementById('newProductMoq').value;
+        const newDays = document.getElementById('newProductDays').value;
+
+        try {
+            const { data, error } = await _supabase.from('products').insert([{
+                product_name: newName,
+                type_id: newTypeId,
+                specifications: newSpecs,
+                moq_of_product: newMoq || null,
+                days_of_manufacturing: newDays || null
+            }]).select().single();
+
+            if (error) throw error;
+
+            showToast('��� ����� ������ �����!', 'success');
+            products.unshift(data); 
+            renderProductsTable();
+            closeAddProductModal();
+
+        } catch (err) {
+            console.error('Error adding product:', err);
+            showToast('��� �� �����: ' + err.message, 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = '����� ������';
+        }
+    });
+}

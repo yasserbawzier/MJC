@@ -24,14 +24,14 @@ async function loadInvoiceDetails() {
     // تحديث رابط العودة
     const backLink = document.getElementById('backToInvoiceItemsLink');
     if (backLink) {
-        backLink.href = `invoice_items.html?invoice_id=${currentInvoiceId}`;
+        backLink.href = `../Presentation/html/invoice_items.html?invoice_id=${currentInvoiceId}`;
     }
 }
 
 // تحميل عناصر الفاتورة وصورها المتاحة
 async function loadAvailableItems() {
     // 1. Fetch invoice items
-    const { data: invoiceItems, error: itemsError } = await _supabase.from('invoice_items').select('id, item_name').eq('invoice_id', currentInvoiceId);
+    const { data: invoiceItems, error: itemsError } = await _supabase.from('invoice_items').select('id, item_name').eq('invoice_id', currentInvoiceId).order('created_at', { ascending: true });
     if (itemsError) { console.error(itemsError); return; }
     invoiceItemsLookup = invoiceItems || [];
 
@@ -94,7 +94,7 @@ async function loadItemDesigns() {
                     client_photo_url,
                     design_photo_url,
                     dieline_photo_url,
-                    invoice_items ( item_name )
+                    invoice_items ( id, item_name, merge_metadata )
                 ),
                 design_elements (
                     id,
@@ -122,21 +122,33 @@ async function loadItemDesigns() {
             
             return {
                 id: row.id,
+                invoice_item_id: invoiceItems.id,
                 item_name: invoiceItems.item_name || '-',
                 client_photo: itemPhotos.client_photo_url || '',
                 design_photo: itemPhotos.design_photo_url || '',
                 dieline_photo: itemPhotos.dieline_photo_url || '',
                 design_details: row.design_details || '',
+                merge_metadata: invoiceItems.merge_metadata || null,
                 display_order: approvedElements.length > 0 ? approvedElements[0].display_order : 1, // Fallback if needed
                 elements: approvedElements
             };
         });
 
+        // Sort gridData to match the order of invoiceItemsLookup to maintain correct merge positions
+        gridData.sort((a, b) => {
+            const indexA = invoiceItemsLookup.findIndex(item => item.id === a.invoice_item_id);
+            const indexB = invoiceItemsLookup.findIndex(item => item.id === b.invoice_item_id);
+            return indexA - indexB;
+        });
+
+        const merges = getMergesFromData(gridData);
         hot.loadData(gridData);
-        // Update dropdown source if grid is initialized
+        
+        // Update dropdown source and apply merges if grid is initialized
         if (hot && availableItemPhotos.length > 0) {
             hot.updateSettings({
-                columns: getColumnsConfig()
+                columns: getColumnsConfig(),
+                mergeCells: merges
             });
         }
 
@@ -210,6 +222,49 @@ function elementsRenderer(instance, td, row, col, prop, value, cellProperties) {
     return td;
 }
 
+function designDetailsRenderer(instance, td, row, col, prop, value, cellProperties) {
+    Handsontable.renderers.HtmlRenderer.apply(this, arguments);
+    td.style.verticalAlign = 'top';
+    td.style.whiteSpace = 'normal';
+    
+    const rowData = instance.getSourceDataAtRow(row);
+    const elements = rowData ? (rowData.elements || []) : [];
+    
+    if (elements.length === 0) {
+        td.innerHTML = '<span style="color:#9ca3af; font-size:12px; padding: 8px; display: block; text-align: center;">لا توجد عناصر معتمدة</span>';
+        return td;
+    }
+    
+    let html = '<div class="text-right" style="padding: 8px; font-size: 11px; line-height: 1.6; direction: rtl;">';
+    
+    elements.forEach(el => {
+        const typeName = el.asset_types ? el.asset_types.name : 'عنصر';
+        html += `<div style="margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed #e5e7eb;">`;
+        html += `<strong style="color: #2563eb; font-size: 13px; display: block; margin-bottom: 2px;">${typeName}</strong>`;
+        
+        if (el.color_code) {
+            html += `<div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                        <span style="color: #4b5563; font-weight: bold;">اللون:</span>
+                        <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background-color:${el.color_code}; border:1px solid #d1d5db;"></span>
+                        <span dir="ltr" style="font-family: monospace; color: #374151;">${el.color_code}</span>
+                     </div>`;
+        }
+        
+        if (el.additional_specifications && el.additional_specifications.trim() !== '') {
+            html += `<div style="color: #4b5563;">
+                        <strong style="color: #374151;">ملاحظات:</strong> 
+                        <span style="white-space: pre-wrap;">${el.additional_specifications}</span>
+                     </div>`;
+        }
+        html += `</div>`;
+    });
+    
+    html += '</div>';
+    td.innerHTML = html;
+    
+    return td;
+}
+
 function actionsRenderer(instance, td, row, col, prop, value, cellProperties) {
     Handsontable.renderers.BaseRenderer.apply(this, arguments);
     td.style.verticalAlign = 'middle';
@@ -232,21 +287,95 @@ function actionsRenderer(instance, td, row, col, prop, value, cellProperties) {
 
 function getColumnsConfig() {
     return [
-        { data: 'display_order', type: 'numeric', className: 'htCenter htMiddle', width: 60 },
+        { data: 'display_order', type: 'numeric', className: 'htCenter htMiddle', width: 90 },
         { 
             data: 'item_name', 
-            type: 'dropdown', 
-            source: availableItemPhotos.map(a => a.name),
+            type: 'text', 
+            readOnly: true,
             className: 'htCenter htMiddle font-bold', 
-            width: 150 
+            width: 180 
         },
-        { data: 'client_photo', renderer: imageRenderer, readOnly: true, width: 80 },
-        { data: 'design_photo', renderer: imageRenderer, readOnly: true, width: 80 },
-        { data: 'dieline_photo', renderer: imageRenderer, readOnly: true, width: 80 },
-        { data: 'design_details', type: 'text', className: 'htMiddle', width: 250 },
-        { data: 'elements', renderer: elementsRenderer, readOnly: true, width: 300 },
+        { data: 'client_photo', renderer: imageRenderer, readOnly: true, width: 140 },
+        { data: 'design_photo', renderer: imageRenderer, readOnly: true, width: 140 },
+        { data: 'dieline_photo', renderer: imageRenderer, readOnly: true, width: 140 },
+        { data: 'design_details', renderer: designDetailsRenderer, readOnly: true, width: 280 },
+        { data: 'elements', renderer: elementsRenderer, readOnly: true, width: 320 },
         { data: 'id', renderer: actionsRenderer, readOnly: true, width: 120 }
     ];
+}
+
+function getMergesFromData(data) {
+    let merges = [];
+    const columnsConfig = getColumnsConfig();
+    
+    // Map invoice_items column names to item_designs column names
+    const keyMapping = {
+        'item_name': 'item_name',
+        'client_photo_url': 'client_photo',
+        'design_photo_url': 'design_photo',
+        'dieline_photo_url': 'dieline_photo',
+        'design_details': 'design_details'
+    };
+
+    for (let row = 0; row < data.length; row++) {
+        let item = data[row];
+        if (!item) continue;
+
+        let meta = item.merge_metadata;
+        if (typeof meta === 'string') {
+            try { meta = JSON.parse(meta); } catch (e) { meta = null; }
+        }
+        
+        if (meta && typeof meta === 'object') {
+            let itemNameRowspan = 1;
+            
+            for (const origKey in meta) {
+                if (meta[origKey] && meta[origKey].rowspan > 1) {
+                    const rowspan = meta[origKey].rowspan;
+                    const colspan = meta[origKey].colspan || 1;
+                    
+                    if (origKey === 'item_name') {
+                        itemNameRowspan = rowspan;
+                    }
+                    
+                    const mappedKey = keyMapping[origKey];
+                    if (!mappedKey) continue; 
+
+                    const colIndex = columnsConfig.findIndex(c => c.data === mappedKey);
+                    
+                    if (colIndex !== -1) {
+                        merges.push({
+                            row: row,
+                            col: colIndex,
+                            rowspan: rowspan,
+                            colspan: colspan
+                        });
+                    }
+                }
+            }
+            
+            // Auto-merge specific item_designs columns if item_name is merged
+            if (itemNameRowspan > 1) {
+                const autoMergeCols = ['design_details', 'elements', 'id']; // id is Actions column
+                autoMergeCols.forEach(colDataName => {
+                    const colIndex = columnsConfig.findIndex(c => c.data === colDataName);
+                    if (colIndex !== -1) {
+                        // Avoid duplicates if somehow already added
+                        const exists = merges.find(m => m.row === row && m.col === colIndex);
+                        if (!exists) {
+                            merges.push({
+                                row: row,
+                                col: colIndex,
+                                rowspan: itemNameRowspan,
+                                colspan: 1
+                            });
+                        }
+                    }
+                });
+            }
+        }
+    }
+    return merges;
 }
 
 function initGrid() {
@@ -277,7 +406,7 @@ function initGrid() {
         contextMenu: ['copy', 'alignment'],
         licenseKey: 'non-commercial-and-evaluation',
         afterChange: async function (changes, source) {
-            if (source === 'loadData' || !changes) return;
+            if (source === 'loadData' || source === 'MergeCells' || !changes) return;
 
             for (const [row, prop, oldValue, newValue] of changes) {
                 if (oldValue !== newValue) {
@@ -317,6 +446,23 @@ function initGrid() {
             }
         }
     });
+
+    // Fix for Shift + Scroll jumping vertically
+    window.addEventListener('wheel', function(e) {
+        if (e.shiftKey) {
+            const htContainer = e.target.closest('.handsontable');
+            if (htContainer && container.contains(htContainer)) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                
+                const holder = htContainer.querySelector('.wtHolder');
+                if (holder) {
+                    const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY;
+                    holder.scrollLeft += delta;
+                }
+            }
+        }
+    }, { passive: false, capture: true });
 }
 
 window.addNewRowToDatabase = async function() {
@@ -501,12 +647,17 @@ document.getElementById('addElementForm').addEventListener('submit', async funct
         if (editId) {
             const { error } = await _supabase.from('design_elements').update(payload).eq('id', editId);
             if (error) throw error;
-            alert('تم تعديل العنصر بنجاح!');
         } else {
             const { error } = await _supabase.from('design_elements').insert([payload]);
             if (error) throw error;
-            alert('تم إضافة العنصر بنجاح!');
         }
+
+        // Sync details to invoice items
+        if (window.syncDesignDetailsToInvoice) {
+            await window.syncDesignDetailsToInvoice(designAssetId);
+        }
+
+        alert(editId ? 'تم تعديل العنصر بنجاح!' : 'تم إضافة العنصر بنجاح!');
 
         closeManageElementsModal();
         await loadItemDesigns(); // Reload grid
@@ -554,8 +705,54 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
+// Ensure all invoice items have a corresponding design_asset row
+async function ensureAllItemsHaveDesignAsset() {
+    try {
+        // 1. Get all invoice items for current invoice
+        const { data: items, error: itemsErr } = await _supabase.from('invoice_items').select('id, item_name').eq('invoice_id', currentInvoiceId);
+        if (itemsErr || !items || items.length === 0) return;
+        
+        // 2. Get existing item_photos
+        const itemIds = items.map(i => i.id);
+        const { data: photos, error: photosErr } = await _supabase.from('item_photos').select('id, item_id').in('item_id', itemIds);
+        if (photosErr) return;
+        
+        const existingPhotoItemIds = (photos || []).map(p => p.item_id);
+        
+        // 3. Create missing item_photos
+        const missingPhotoItems = items.filter(i => !existingPhotoItemIds.includes(i.id));
+        let allPhotos = [...(photos || [])];
+        
+        if (missingPhotoItems.length > 0) {
+            const photoInserts = missingPhotoItems.map(i => ({ item_id: i.id }));
+            const { data: newPhotos, error: newPhotosErr } = await _supabase.from('item_photos').insert(photoInserts).select('id, item_id');
+            if (!newPhotosErr && newPhotos) {
+                allPhotos = allPhotos.concat(newPhotos);
+            }
+        }
+        
+        if (allPhotos.length === 0) return;
+        
+        // 4. Get existing design_assets
+        const photoIds = allPhotos.map(p => p.id);
+        const { data: designs, error: designsErr } = await _supabase.from('design_assets').select('id, design_id').in('design_id', photoIds);
+        if (designsErr) return;
+        
+        const existingDesignPhotoIds = (designs || []).map(d => d.design_id);
+        
+        // 5. Create missing design_assets
+        const missingDesignPhotoIds = photoIds.filter(id => !existingDesignPhotoIds.includes(id));
+        if (missingDesignPhotoIds.length > 0) {
+            const designInserts = missingDesignPhotoIds.map(id => ({ design_id: id, design_details: '' }));
+            await _supabase.from('design_assets').insert(designInserts);
+        }
+    } catch (e) {
+        console.error("Auto-sync error:", e);
+    }
+}
+
 // تشغيل عند التحميل
-function initItemDesignsPage() {
+async function initItemDesignsPage() {
     const params = new URLSearchParams(window.location.search);
     currentInvoiceId = params.get('invoice_id');
 
@@ -567,6 +764,10 @@ function initItemDesignsPage() {
 
     loadInvoiceDetails();
     initGrid();
+    
+    // Auto-sync items so they all appear as rows immediately
+    await ensureAllItemsHaveDesignAsset();
+    
     Promise.all([loadAvailableItems(), loadAssetTypes()]).then(() => loadItemDesigns());
 }
 

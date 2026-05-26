@@ -1,0 +1,161 @@
+/* CSS لضمان ملء الشاشة بالكامل دون أي تمرير (Scroll) في الصفحة الرئيسية */
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* نمنع التمرير في الهيكل الأساسي */
+}
+
+/* تفعيل التمرير المريح داخل القائمة الجانبية إذا كثرت العناصر */
+.sidebar-scroll {
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+}
+.sidebar-scroll::-webkit-scrollbar { 
+    display: none;  /* Safari and Chrome */
+}
+
+/* تنسيق الأيقونات والروابط في القائمة الجانبية */
+.nav-link {
+    transition: all 0.3s ease;
+    position: relative;
+}
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(-4px);
+}
+.nav-link.active {
+    background-color: #3b82f6; /* أزرق فخم */
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+}
+.nav-link.active::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: #60a5fa;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+/* Iframe */
+#content-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background-color: #f3f4f6; /* لون رمادي فاتح يعطي انطباع التحميل النظيف */
+}
+
+/* طي القائمة الجانبية (Sidebar Collapse) */
+.sidebar {
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar.collapsed {
+    width: 88px; /* يعادل تقريباً w-22 */
+}
+.sidebar.collapsed .sidebar-text {
+    opacity: 0;
+    width: 0;
+    visibility: hidden;
+    margin: 0;
+    padding: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar .sidebar-text {
+    opacity: 1;
+    width: auto;
+    visibility: visible;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar.collapsed .nav-link {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+    margin-bottom: 0.5rem;
+    position: relative;
+}
+.sidebar.collapsed .nav-link svg {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+.sidebar.collapsed .header-container {
+    justify-content: center;
+    padding: 0;
+}
+.sidebar.collapsed .sidebar-logo-icon {
+    display: none;
+}
+.sidebar.collapsed .sidebar-toggle-btn svg {
+    transform: none;
+}
+
+/* تلميحات الأيقونات عند الطي (Tooltips) */
+.sidebar.collapsed .nav-link::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    right: 100%;
+    margin-right: 14px;
+    background-color: #1e293b;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateX(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar.collapsed .nav-link:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+.sidebar.collapsed .nav-link.active::before {
+    display: none;
+}
+
+/* ==========================================
+   Toast Notifications (Pure CSS fallback)
+   ========================================== */
+.global-toast-container {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+}
+.custom-toast {
+    padding: 16px 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transform: translateX(-100%);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+    width: max-content;
+    max-width: 90vw;
+}
+.custom-toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+.custom-toast.success { background-color: #10b981; } /* Emerald 500 */
+.custom-toast.error { background-color: #ef4444; } /* Red 500 */
+.custom-toast.info { background-color: #3b82f6; } /* Blue 500 */

@@ -1,35 +1,11 @@
 // متغيرات عامة لإدارة أنواع المنتجات
-let productTypes = [];
+let ptProductTypesList = [];
 let currentEditingTypeId = null;
-let currentLimit = 50; // عرض 50 نوع منتج كحد أقصى مبدئياً
+let ptCurrentLimit = 50; // عرض 50 نوع منتج كحد أقصى مبدئياً
 
 // نظام إشعارات ذكي لترتيب التنبيهات فوق بعضها
 function showToast(message, type = 'info') {
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        document.body.appendChild(container);
-    }
-    const toast = document.createElement('div');
-    toast.className = `toast-item ${type} hidden-toast`;
-    toast.innerHTML = message;
-    container.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.classList.remove('hidden-toast');
-    }, 10);
-    
-    return {
-        update: (newMessage, newType) => {
-            toast.className = `toast-item ${newType}`;
-            toast.innerHTML = newMessage;
-        },
-        remove: () => {
-            toast.classList.add('hidden-toast');
-            setTimeout(() => toast.remove(), 300);
-        }
-    };
+    return window.showNotification(message, type);
 }
 
 // دالة لتنسيق الوقت والتاريخ بشكل مقروء
@@ -73,7 +49,7 @@ async function loadTypes() {
             return;
         }
         
-        productTypes = data || [];
+        ptProductTypesList = data || [];
         renderTypesTable();
     } catch (error) {
         console.error('Unexpected error:', error);
@@ -86,7 +62,7 @@ function renderTypesTable() {
     const tbody = document.getElementById('productTypesTableBody');
     tbody.innerHTML = '';
     
-    if (productTypes.length === 0) {
+    if (ptProductTypesList.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">لا توجد أنواع منتجات حالياً.</td></tr>';
         return;
     }
@@ -94,7 +70,7 @@ function renderTypesTable() {
     const fragment = document.createDocumentFragment();
     
     // جلب العناصر حسب حد العرض المسموح به
-    const typesToShow = productTypes.slice(0, currentLimit);
+    const typesToShow = ptProductTypesList.slice(0, ptCurrentLimit);
     
     typesToShow.forEach(type => {
         const row = createProductTypeRow(type);
@@ -102,12 +78,12 @@ function renderTypesTable() {
     });
     
     // إضافة زر "عرض المزيد" إذا كان هناك عناصر متبقية
-    if (productTypes.length > currentLimit) {
+    if (ptProductTypesList.length > ptCurrentLimit) {
         const loadMoreRow = document.createElement('tr');
         loadMoreRow.innerHTML = `
             <td colspan="4" class="p-4 text-center">
                 <button onclick="loadMoreTypes()" class="bg-blue-50 border border-blue-200 text-blue-700 px-6 py-2 rounded-full font-bold hover:bg-blue-100 transition-all shadow-sm">
-                    عرض المزيد من الأنواع (متبقي ${productTypes.length - currentLimit})
+                    عرض المزيد من الأنواع (متبقي ${ptProductTypesList.length - ptCurrentLimit})
                 </button>
             </td>
         `;
@@ -119,7 +95,7 @@ function renderTypesTable() {
 
 // دالة لزيادة حجم العناصر المعروضة
 function loadMoreTypes() {
-    currentLimit += 50;
+    ptCurrentLimit += 50;
     renderTypesTable();
 }
 
@@ -182,7 +158,7 @@ async function addType(event) {
         if (error) throw error;
         
         // التحديث المحلي
-        productTypes.unshift(data); // إضافة في أول المصفوفة لأن الترتيب تنازلي (الأحدث أولاً)
+        ptProductTypesList.unshift(data); // إضافة في أول المصفوفة لأن الترتيب تنازلي (الأحدث أولاً)
         renderTypesTable();
         
         closeAddTypeModal();
@@ -203,7 +179,7 @@ async function addType(event) {
 
 // فتح مودال التعديل بشكل فوري من الذاكرة دون الاتصال بالسيرفر
 function openEditTypeModal(id) {
-    const type = productTypes.find(t => t.id === id);
+    const type = ptProductTypesList.find(t => t.id === id);
     if (!type) {
         showToast('لم يتم العثور على نوع المنتج في الذاكرة المحلية!', 'error');
         return;
@@ -257,9 +233,9 @@ async function updateType(event) {
         if (error) throw error;
         
         // تحديث الذاكرة المحلية
-        const index = productTypes.findIndex(t => t.id === currentEditingTypeId);
+        const index = ptProductTypesList.findIndex(t => t.id === currentEditingTypeId);
         if (index !== -1) {
-            productTypes[index] = data;
+            ptProductTypesList[index] = data;
         }
         
         // تحديث العنصر محلياً في الواجهة (Optimistic UI) بدون رندر كامل للجدول
@@ -306,7 +282,7 @@ async function deleteType(id) {
         if (error) throw error;
         
         // تحديث الذاكرة المحلية
-        productTypes = productTypes.filter(t => t.id !== id);
+        ptProductTypesList = ptProductTypesList.filter(t => t.id !== id);
         
         // إخفاء السطر من الجدول بتأثير حركي
         const row = document.getElementById(`type-row-${id}`);
@@ -314,7 +290,7 @@ async function deleteType(id) {
             row.classList.add('opacity-0', 'scale-95');
             setTimeout(() => {
                 row.remove();
-                if (productTypes.length === 0) renderTypesTable();
+                if (ptProductTypesList.length === 0) renderTypesTable();
             }, 300);
         }
         
